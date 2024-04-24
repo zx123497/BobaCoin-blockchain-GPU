@@ -1,0 +1,23 @@
+syntax = "proto3";
+package node;
+
+service NodeMessage {
+    rpc joinNetwork(JoinNetworkRequest) returns (JoinNetworkResponse) {}
+}
+
+message JoinNetworkRequest {
+    string ip = 1;
+    int32 port = 2;
+}
+
+message JoinNetworkResponse {
+    int32 assignedId = 1;
+    repeated NodeInfo nodes = 2;
+}
+
+message NodeInfo {
+    int32 id = 1;
+    string ip = 2;
+    int32 port = 3;
+}
+
