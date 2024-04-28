@@ -3,21 +3,47 @@ package node;
 
 service NodeMessage {
     rpc joinNetwork(JoinNetworkRequest) returns (JoinNetworkResponse) {}
+    rpc sendNewBlock(SendNewBlockRequest) returns (SendNewBlockResponse) {}
 }
 
 message JoinNetworkRequest {
-    string ip = 1;
-    int32 port = 2;
+    NodeInfo node = 1;
 }
 
 message JoinNetworkResponse {
-    int32 assignedId = 1;
-    repeated NodeInfo nodes = 2;
+    repeated NodeInfo nodes = 1;
 }
 
 message NodeInfo {
     int32 id = 1;
     string ip = 2;
     int32 port = 3;
+}
+
+message SendNewBlockRequest {
+    Block block = 1;
+}
+
+message SendNewBlockResponse {
+    bool success = 1;
+}
+
+message Block {
+    int32 id = 1;
+    string hash = 2;
+    string prevHash = 3;
+    int32 nonce = 4;
+    int32 timestamp = 5;
+    int32 difficulty = 6;
+    repeated Transaction transactions = 7;
+}
+
+message Transaction {
+    int32 id = 1;
+    string hash = 2;
+    string sender = 3;
+    string receiver = 4;
+    int32 amount = 5;
+    int32 timestamp = 6;
 }
 
