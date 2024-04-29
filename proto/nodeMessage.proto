@@ -3,7 +3,7 @@ package node;
 
 service NodeMessage {
     rpc joinNetwork(JoinNetworkRequest) returns (JoinNetworkResponse) {}
-    rpc sendNewBlock(SendNewBlockRequest) returns (SendNewBlockResponse) {}
+    rpc updateBlockchain(UpdateBlockchainRequest) returns (UpdateBlockchainResponse) {}
 }
 
 message JoinNetworkRequest {
@@ -15,17 +15,9 @@ message JoinNetworkResponse {
 }
 
 message NodeInfo {
-    int32 id = 1;
+    string id = 1;
     string ip = 2;
     int32 port = 3;
-}
-
-message SendNewBlockRequest {
-    Block block = 1;
-}
-
-message SendNewBlockResponse {
-    bool success = 1;
 }
 
 message Block {
@@ -45,5 +37,14 @@ message Transaction {
     string receiver = 4;
     int32 amount = 5;
     int32 timestamp = 6;
+    int32 fee = 7;
+}
+
+message UpdateBlockchainRequest {
+    repeated Block chain = 1;
+}
+
+message UpdateBlockchainResponse {
+    bool success = 1;
 }
 

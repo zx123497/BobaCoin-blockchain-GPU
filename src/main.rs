@@ -1,24 +1,21 @@
-mod blockchain_network;
-use crate::blockchain_network::BlockchainNetwork;
-use node::node_message_client::NodeMessageClient;
-use node::node_message_server::NodeMessageServer;
-use node::{JoinNetworkRequest, NodeInfo};
+mod models;
+use crate::models::{network::Network, node::Node};
+use node::{
+    node_message_client::NodeMessageClient, node_message_server::NodeMessageServer,
+    JoinNetworkRequest, NodeInfo, UpdateBlockchainRequest,
+};
+use std::sync::Arc;
 use tonic::{transport::Server, Request};
 pub mod node {
     tonic::include_proto!("node");
 }
 
-pub struct Block {
-    pub index: i32,
-    pub timestamp: i32,
-    pub data: String,
-    pub previous_hash: String,
-    pub hash: String,
-}
+const SUPER_NODE_PORT: i32 = 50051;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let port: i32;
+    // TODO: use a argument parser
     if std::env::args().len() == 1 {
         // if no port is provided, then start a super node
         port = 50051;
@@ -29,20 +26,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         port = args[1].parse().unwrap();
     }
 
-    let network = BlockchainNetwork::default();
-    let ip = "127.1.1.1".to_string();
+    let node = Arc::new(Node::new(port));
 
-    // get the ip address of the current node
+    let network = Network { node: node.clone() };
+
     let node_info = NodeInfo {
-        id: calculate_id(&ip, port),
-        ip: ip,
-        port: port,
+        id: node.id.to_string(),
+        ip: node.ip.clone(),
+        port: node.port,
     };
 
     // if the node is not the master node, then should introduce itself to every node in the network
-    if port != 50051 {
+    if port != SUPER_NODE_PORT {
         // connect to the super node
-        let mut client = NodeMessageClient::connect("http://[::1]:50051").await?;
+        let mut client =
+            NodeMessageClient::connect(format!("http://[::1]:{}", SUPER_NODE_PORT)).await?;
         let res = client
             .join_network(Request::new(JoinNetworkRequest {
                 node: Some(node_info.clone()),
@@ -55,7 +53,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 continue;
             }
             let mut client =
-                NodeMessageClient::connect(format!("http://[::1]:{}", node.port)).await?;
+                NodeMessageClient::connect(format!("http://{}:{}", node.ip, node.port)).await?;
             client
                 .join_network(Request::new(JoinNetworkRequest {
                     node: Some(node_info.clone()),
@@ -65,20 +63,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let addr = format!("[::1]:{}", port).parse().unwrap();
-    println!("Start the server at: {:?}", addr);
+
+    // start a thread to handle incoming transactions, if any transaction is received, compute the hash and add it to the blockchain
+
+    println!("Node server listening on {}", addr);
     Server::builder()
         .add_service(NodeMessageServer::new(network))
         .serve(addr)
         .await?;
 
     Ok(())
-}
-
-pub fn calculate_id(ip: &String, port: i32) -> i32 {
-    let mut id = 0;
-    for c in ip.chars() {
-        id += c as i32;
-    }
-    id += port;
-    id
 }

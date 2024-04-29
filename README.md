@@ -18,3 +18,7 @@ As indicated in the lab writeup, you have an opportunity to design and implement
 ```
 make test
 ```
+
+## TODO
+1. Send new blocks instead of entire chain after mining a new block
+2. Use actual transactions instead of placeholders
