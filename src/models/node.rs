@@ -16,7 +16,7 @@ impl Node {
         Node {
             peers: Mutex::new(Vec::new()),
             blockchain: Mutex::new(Blockchain::new(rx)),
-            ip: "127.0.0.1".to_string(),
+            ip: "[::1]".to_string(),
             port: port,
             id: Uuid::new_v4(),
         }

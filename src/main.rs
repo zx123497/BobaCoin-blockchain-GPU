@@ -15,7 +15,7 @@ const SUPER_NODE_PORT: i32 = 50051;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let (tx, rx) = mpsc::channel::<bool>(0);
+    let (tx, rx) = mpsc::channel::<bool>(1);
     let port: i32;
     // TODO: use a argument parser
     if std::env::args().len() == 1 {
