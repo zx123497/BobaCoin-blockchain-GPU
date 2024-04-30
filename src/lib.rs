@@ -77,7 +77,7 @@ pub async fn start(port: u32, peer_port: Option<u32>) {
 pub async fn handle_transactions(node: Arc<Node>, port: u32, mut rx: mpsc::Receiver<bool>) {
     loop {
         let blockchain = node.blockchain.lock().await;
-        let mut chain = blockchain.blockchain.clone();
+        let mut chain = blockchain.chain.clone();
         let difficulty = blockchain.difficulty;
         let mut last_block = chain.last().cloned();
         if last_block.is_none() {
@@ -112,7 +112,7 @@ pub async fn handle_transactions(node: Arc<Node>, port: u32, mut rx: mpsc::Recei
                 // broadcast the new block to the rest of the network
                 chain.push(block.clone());
                 let mut blockchain = node.blockchain.lock().await;
-                blockchain.blockchain = chain;
+                blockchain.chain = chain;
 
                 for node in node.peers.lock().await.iter() {
                     if node.port == port {
@@ -124,7 +124,7 @@ pub async fn handle_transactions(node: Arc<Node>, port: u32, mut rx: mpsc::Recei
                             .unwrap();
                     client
                         .update_blockchain(Request::new(UpdateBlockchainRequest {
-                            chain: blockchain.blockchain.clone(),
+                            chain: blockchain.chain.clone(),
                         }))
                         .await
                         .unwrap();

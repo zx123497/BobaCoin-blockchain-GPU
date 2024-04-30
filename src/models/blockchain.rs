@@ -3,7 +3,7 @@ use tokio::sync::mpsc::Receiver;
 use tonic::Status;
 pub struct Blockchain {
     pub transactions: Vec<Transaction>,
-    pub blockchain: Vec<Block>,
+    pub chain: Vec<Block>,
     pub difficulty: i32,
 }
 
@@ -13,14 +13,14 @@ impl Blockchain {
     pub fn new() -> Blockchain {
         Blockchain {
             transactions: Vec::new(),
-            blockchain: Vec::new(),
+            chain: Vec::new(),
             difficulty: 5,
         }
     }
     /// Check if the block is valid
     pub async fn check_blockchain_validity(&self) -> bool {
         let mut current_timestamp = 0;
-        for (i, block) in self.blockchain.iter().enumerate() {
+        for (i, block) in self.chain.iter().enumerate() {
             if i != block.id as usize {
                 return false;
             }

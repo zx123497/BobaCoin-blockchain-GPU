@@ -6,6 +6,7 @@ service NodeMessage {
     rpc updateBlockchain(UpdateBlockchainRequest) returns (UpdateBlockchainResponse) {}
     rpc updateTransaction(UpdateTransactionRequest) returns (UpdateTransactionResponse) {}
     rpc updateClientTransaction(UpdateTransactionRequest) returns (UpdateTransactionResponse) {}
+    rpc getBlockchain(GetBlockchainRequest) returns (GetBlockchainResponse) {}
 }
 
 message JoinNetworkRequest {
@@ -56,4 +57,11 @@ message UpdateTransactionRequest {
 
 message UpdateTransactionResponse {
     bool success = 1;
+}
+
+message GetBlockchainRequest {
+}
+
+message GetBlockchainResponse {
+    repeated Block chain = 1;
 }

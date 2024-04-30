@@ -1,10 +1,10 @@
 use crate::models::node::Node;
-use crate::node::node_message_client::NodeMessageClient;
+
 use crate::node::{
-    node_message_server::NodeMessage, JoinNetworkRequest, JoinNetworkResponse,
-    UpdateBlockchainRequest, UpdateBlockchainResponse,
+    node_message_client::NodeMessageClient, node_message_server::NodeMessage, GetBlockchainRequest,
+    GetBlockchainResponse, JoinNetworkRequest, JoinNetworkResponse, UpdateBlockchainRequest,
+    UpdateBlockchainResponse, UpdateTransactionRequest, UpdateTransactionResponse,
 };
-use crate::node::{UpdateTransactionRequest, UpdateTransactionResponse};
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
 use tonic::{Request, Response, Status};
@@ -41,17 +41,17 @@ impl NodeMessage for Network {
         let request_bc = request.into_inner().chain;
         let mut current_bc = self.node.blockchain.lock().await;
 
-        if request_bc.len() > current_bc.blockchain.len() {
+        if request_bc.len() > current_bc.chain.len() {
             if current_bc.check_blockchain_validity().await {
                 // delete transactions that are already in the blockchain
                 current_bc
                     .transactions
                     .retain(|x| !request_bc.iter().any(|y| y.transactions.contains(x)));
 
-                current_bc.blockchain = request_bc;
+                current_bc.chain = request_bc;
                 println!(
                     "[INFO] Update blockchain from other peer: {:?}",
-                    current_bc.blockchain.len()
+                    current_bc.chain.len()
                 );
                 match self.tx.send(true).await {
                     Ok(_) => Ok(Response::new(UpdateBlockchainResponse { success: true })),
@@ -119,5 +119,15 @@ impl NodeMessage for Network {
                 .unwrap();
         }
         Ok(Response::new(UpdateTransactionResponse { success: true }))
+    }
+
+    async fn get_blockchain(
+        &self,
+        _: Request<GetBlockchainRequest>,
+    ) -> Result<Response<GetBlockchainResponse>, Status> {
+        let blockchain = self.node.blockchain.lock().await;
+        Ok(Response::new(GetBlockchainResponse {
+            chain: blockchain.chain.clone(),
+        }))
     }
 }
