@@ -5,6 +5,7 @@ use node::{
     JoinNetworkRequest, NodeInfo, UpdateBlockchainRequest,
 };
 use std::sync::Arc;
+use tokio::sync::mpsc;
 use tonic::{transport::Server, Request};
 pub mod node {
     tonic::include_proto!("node");
@@ -14,6 +15,7 @@ const SUPER_NODE_PORT: i32 = 50051;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let (tx, rx) = mpsc::channel::<bool>(0);
     let port: i32;
     // TODO: use a argument parser
     if std::env::args().len() == 1 {
@@ -26,9 +28,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         port = args[1].parse().unwrap();
     }
 
-    let node = Arc::new(Node::new(port));
+    let node = Arc::new(Node::new(port, rx));
 
-    let network = Network { node: node.clone() };
+    let network = Network {
+        node: node.clone(),
+        tx: tx,
+    };
 
     let node_info = NodeInfo {
         id: node.id.to_string(),
@@ -65,6 +70,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = format!("[::1]:{}", port).parse().unwrap();
 
     // start a thread to handle incoming transactions, if any transaction is received, compute the hash and add it to the blockchain
+    tokio::spawn(handle_transactions(node.clone(), port));
 
     println!("Node server listening on {}", addr);
     Server::builder()
@@ -73,4 +79,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     Ok(())
+}
+
+pub async fn handle_transactions(node: Arc<Node>, port: i32) {
+    let mut blockchain = node.blockchain.lock().await;
+    let transactions = blockchain.transactions.clone();
+
+    while transactions.len() > 0 {
+        match blockchain.mine_new_block(transactions.clone()).await {
+            Ok(block) => {
+                // broadcast the new block to the rest of the network
+                blockchain.add_block_to_blockchain(block).await;
+                for node in node.peers.lock().await.iter() {
+                    if node.port == port {
+                        continue;
+                    }
+                    let mut client =
+                        NodeMessageClient::connect(format!("http://[::1]:{}", node.port))
+                            .await
+                            .unwrap();
+                    client
+                        .update_blockchain(Request::new(UpdateBlockchainRequest {
+                            chain: blockchain.blockchain.clone(),
+                        }))
+                        .await
+                        .unwrap();
+                }
+                blockchain.transactions.clear();
+            }
+            Err(error) => {
+                println!("[Error] Failed to mine new block: {:?}", error);
+            }
+        }
+    }
 }

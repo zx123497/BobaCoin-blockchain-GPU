@@ -1,5 +1,6 @@
 use crate::models::blockchain::Blockchain;
 use crate::node::NodeInfo;
+use tokio::sync::mpsc::Receiver;
 use tokio::sync::Mutex;
 use uuid::Uuid;
 pub struct Node {
@@ -11,10 +12,10 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn new(port: i32) -> Node {
+    pub fn new(port: i32, rx: Receiver<bool>) -> Node {
         Node {
             peers: Mutex::new(Vec::new()),
-            blockchain: Mutex::new(Blockchain::default()),
+            blockchain: Mutex::new(Blockchain::new(rx)),
             ip: "127.0.0.1".to_string(),
             port: port,
             id: Uuid::new_v4(),

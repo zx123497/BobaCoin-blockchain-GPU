@@ -4,10 +4,12 @@ use crate::node::{
     UpdateBlockchainRequest, UpdateBlockchainResponse,
 };
 use std::sync::Arc;
+use tokio::sync::mpsc::Sender;
 use tonic::{Request, Response, Status};
 
 pub struct Network {
     pub node: Arc<Node>,
+    pub tx: Sender<bool>,
 }
 
 /// Implement the NodeMessage trait for the BlockchainNetwork struct
@@ -39,8 +41,15 @@ impl NodeMessage for Network {
         let mut current_bc = self.node.blockchain.lock().await;
 
         if request_bc.len() >= current_bc.blockchain.len() {
-            current_bc.blockchain = request_bc;
-            Ok(Response::new(UpdateBlockchainResponse { success: true }))
+            if current_bc.check_blockchain_validity().await {
+                current_bc.blockchain = request_bc;
+                match self.tx.send(true).await {
+                    Ok(_) => Ok(Response::new(UpdateBlockchainResponse { success: true })),
+                    Err(_) => Ok(Response::new(UpdateBlockchainResponse { success: false })),
+                }
+            } else {
+                Ok(Response::new(UpdateBlockchainResponse { success: false }))
+            }
         } else {
             Ok(Response::new(UpdateBlockchainResponse { success: false }))
         }

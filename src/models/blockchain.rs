@@ -1,34 +1,38 @@
 use crate::node::{Block, Transaction};
+use tokio::sync::mpsc::Receiver;
 use tonic::Status;
-
 pub struct Blockchain {
     pub transactions: Vec<Transaction>,
     pub blockchain: Vec<Block>,
     pub difficulty: i32,
-}
-
-impl Default for Blockchain {
-    fn default() -> Self {
-        Blockchain {
-            transactions: Vec::new(),
-            blockchain: Vec::new(),
-            difficulty: 4,
-        }
-    }
+    pub rx: Receiver<bool>,
 }
 
 /// Implement the BlockchainNetwork struct
 /// This struct will hold the list of nodes and the blockchain
 impl Blockchain {
-    /// Check if the block is valid
-    pub async fn check_block_validity(&self, block: &Block) -> bool {
-        // TODO: implement the check_block_validity function
-        let last_block = self.blockchain.last().unwrap();
-        if last_block.id + 1 != block.id {
-            return false;
+    pub fn new(rx: Receiver<bool>) -> Blockchain {
+        Blockchain {
+            transactions: Vec::new(),
+            blockchain: Vec::new(),
+            difficulty: 4,
+            rx: rx,
         }
-        if last_block.hash != block.prev_hash {
-            return false;
+    }
+    /// Check if the block is valid
+    pub async fn check_blockchain_validity(&self) -> bool {
+        let mut current_timestamp = 0;
+        for (i, block) in self.blockchain.iter().enumerate() {
+            if i != block.id as usize {
+                return false;
+            }
+            if block.timestamp <= current_timestamp {
+                return false;
+            }
+            if !block.check_block_validity() {
+                return false;
+            }
+            current_timestamp = block.timestamp;
         }
         true
     }
@@ -38,7 +42,10 @@ impl Blockchain {
         self.blockchain.push(block);
     }
 
-    pub async fn mine_new_block(&self, transactions: Vec<Transaction>) -> Result<Block, Status> {
+    pub async fn mine_new_block(
+        &mut self,
+        transactions: Vec<Transaction>,
+    ) -> Result<Block, Status> {
         let last_block = self.blockchain.last().unwrap();
         let mut nonce = 0;
 
@@ -55,6 +62,11 @@ impl Blockchain {
         let mut current_hash = new_block.compute_hash(nonce);
 
         while !self.check_hash_validity(&current_hash, self.difficulty) {
+            // if received a signal to stop mining, then return an error
+            if let Ok(_) = self.rx.try_recv() {
+                return Err(Status::cancelled("Mining stopped"));
+            }
+
             nonce += 1;
             current_hash = new_block.compute_hash(nonce);
         }
@@ -96,6 +108,31 @@ impl Block {
         let input = hex_hash + nonce.to_string().as_str();
         sha_hash(&input)
     }
+
+    /// Check if the block is valid
+    pub fn check_block_validity(&self) -> bool {
+        if self.id < 0 {
+            return false;
+        }
+
+        if self.hash != self.compute_hash(self.nonce) {
+            return false;
+        }
+
+        // check if timestamp is valid
+        let mut current_timestamp = 0;
+        for transaction in self.transactions.iter() {
+            if current_timestamp >= transaction.timestamp {
+                return false;
+            }
+            if !transaction.check_transaction_validity() {
+                return false;
+            }
+            current_timestamp = transaction.timestamp;
+        }
+
+        true
+    }
 }
 
 impl Transaction {
@@ -106,8 +143,29 @@ impl Transaction {
         );
         sha_hash(&data)
     }
+
+    /// Check if the transaction is valid
+    pub fn check_transaction_validity(&self) -> bool {
+        if self.amount < 0 {
+            return false;
+        }
+
+        if self.fee < 0 {
+            return false;
+        }
+
+        if self.sender == self.receiver {
+            return false;
+        }
+
+        if self.hash != self.compute_hash() {
+            return false;
+        }
+        true
+    }
 }
 
+/// Compute the SHA256 hash of the input data
 pub fn sha_hash(data: &str) -> String {
     let hash = sha256::digest(data.as_bytes());
     hash.to_string()
