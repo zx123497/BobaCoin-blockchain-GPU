@@ -11,7 +11,7 @@ use std::sync::Arc;
 use tokio::{sync::mpsc, task::JoinSet};
 use tonic::{transport::Server, Request};
 
-pub async fn start(port: u16, peer_port: Option<u16>) {
+pub async fn start(port: u32, peer_port: Option<u32>) {
     let (tx, rx) = mpsc::channel::<bool>(1);
     let node = Arc::new(Node::new(port));
     let network = Network {
@@ -40,11 +40,12 @@ pub async fn start(port: u16, peer_port: Option<u16>) {
         // broadcast the new node to the rest of the network
         let mut broadcast = JoinSet::new();
         res.into_inner().nodes.into_iter().for_each(|node| {
-            if node.port == port as i32 {
+            if node.port == port || node.port == peer {
                 return;
             }
             let node_info = node_info.clone();
             broadcast.spawn(async move {
+                println!("Broadcasting to node: {:?}", node.port);
                 let mut client =
                     NodeMessageClient::connect(format!("http://{}:{}", node.ip, node.port))
                         .await
@@ -63,7 +64,7 @@ pub async fn start(port: u16, peer_port: Option<u16>) {
     // start a thread to handle incoming transactions, if any transaction is received, compute the hash and add it to the blockchain
     let addr = format!("[::1]:{}", port).parse().unwrap();
 
-    tokio::spawn(handle_transactions(node, port as i32, rx));
+    tokio::spawn(handle_transactions(node, port, rx));
 
     println!("Node server listening on {}", addr);
     Server::builder()
@@ -73,7 +74,7 @@ pub async fn start(port: u16, peer_port: Option<u16>) {
         .unwrap();
 }
 
-pub async fn handle_transactions(node: Arc<Node>, port: i32, mut rx: mpsc::Receiver<bool>) {
+pub async fn handle_transactions(node: Arc<Node>, port: u32, mut rx: mpsc::Receiver<bool>) {
     loop {
         let blockchain = node.blockchain.lock().await;
         let mut chain = blockchain.blockchain.clone();

@@ -5,17 +5,21 @@ use clap::Parser;
 #[command(version, about, long_about = None)]
 struct Args {
     /// The port to listen on
-    port: u16,
+    port: u32,
 
     /// The port of a peer node
-    #[arg(short, long)]
-    peer_port: Option<u16>,
+    #[arg(short, long, default_value_t = 0)]
+    peer_port: u32,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
-    start(args.port, args.peer_port).await;
+    if args.peer_port == 0 {
+        start(args.port, None).await;
+    } else {
+        start(args.port, Some(args.peer_port)).await;
+    }
 
     Ok(())
 }
