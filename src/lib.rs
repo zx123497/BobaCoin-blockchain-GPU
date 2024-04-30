@@ -135,7 +135,9 @@ pub async fn handle_transactions(node: Arc<Node>, port: u32, mut rx: mpsc::Recei
                         .await
                         .unwrap();
                 }
-                blockchain.transactions.clear();
+                for transaction in transactions {
+                    blockchain.transactions.retain(|x| x != &transaction);
+                }
                 drop(blockchain);
             }
             Err(error) => {

@@ -93,15 +93,17 @@ impl NodeMessage for Network {
     ) -> Result<Response<UpdateTransactionResponse>, Status> {
         let mut blockchain = self.node.blockchain.lock().await;
         let req_transaction = request.into_inner().transactions;
-        println!(
-            "[INFO] New transaction recieved from clien {:?}",
-            req_transaction.len()
-        );
+
         for transaction in &req_transaction {
+            if blockchain.transactions.contains(&transaction) {
+                continue;
+            }
             if transaction.check_transaction_validity() {
                 blockchain.transactions.push(transaction.clone());
             }
         }
+
+        println!("[INFO] New transaction recieved from client");
 
         // broadcast the new transaction to the rest of the network
         for node in self.node.peers.lock().await.iter() {

@@ -1,4 +1,5 @@
 use crate::node::{Block, Transaction};
+use std::time::SystemTime;
 use tokio::sync::mpsc::Receiver;
 use tonic::Status;
 pub struct Blockchain {
@@ -144,7 +145,7 @@ pub async fn mine_new_block(
 
     let mut new_block = Block {
         id: last_block.id + 1,
-        timestamp: 0, // TODO
+        timestamp: 0,
         prev_hash: last_block.hash.clone(),
         hash: "".to_string(),
         nonce: 0,
@@ -163,10 +164,17 @@ pub async fn mine_new_block(
 
         nonce += 1;
         current_hash = new_block.compute_hash(nonce);
+        if nonce % 1000 == 0 {
+            tokio::task::yield_now().await;
+        }
     }
 
     new_block.nonce = nonce;
     new_block.hash = current_hash.clone();
+    new_block.timestamp = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as u32;
 
     println!("[INFO] New block mined: {:?}", new_block);
 

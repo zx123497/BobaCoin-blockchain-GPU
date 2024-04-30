@@ -28,7 +28,7 @@ message Block {
     string hash = 2;
     string prevHash = 3;
     int32 nonce = 4;
-    int32 timestamp = 5;
+    uint32 timestamp = 5;
     int32 difficulty = 6;
     repeated Transaction transactions = 7;
 }
@@ -39,7 +39,7 @@ message Transaction {
     string sender = 3;
     string receiver = 4;
     int32 amount = 5;
-    int32 timestamp = 6;
+    uint32 timestamp = 6;
     int32 fee = 7;
 }
 
