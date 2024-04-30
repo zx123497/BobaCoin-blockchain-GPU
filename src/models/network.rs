@@ -41,9 +41,18 @@ impl NodeMessage for Network {
         let request_bc = request.into_inner().chain;
         let mut current_bc = self.node.blockchain.lock().await;
 
-        if request_bc.len() >= current_bc.blockchain.len() {
+        if request_bc.len() > current_bc.blockchain.len() {
             if current_bc.check_blockchain_validity().await {
+                // delete transactions that are already in the blockchain
+                current_bc
+                    .transactions
+                    .retain(|x| !request_bc.iter().any(|y| y.transactions.contains(x)));
+
                 current_bc.blockchain = request_bc;
+                println!(
+                    "[INFO] Update blockchain from other peer: {:?}",
+                    current_bc.blockchain.len()
+                );
                 match self.tx.send(true).await {
                     Ok(_) => Ok(Response::new(UpdateBlockchainResponse { success: true })),
                     Err(_) => Ok(Response::new(UpdateBlockchainResponse { success: false })),
@@ -70,6 +79,10 @@ impl NodeMessage for Network {
                 blockchain.transactions.push(transaction);
             }
         }
+        println!(
+            "[INFO] Update transaction from other peer: {:?}",
+            blockchain.transactions.len()
+        );
         Ok(Response::new(UpdateTransactionResponse { success: true }))
     }
 
@@ -80,6 +93,10 @@ impl NodeMessage for Network {
     ) -> Result<Response<UpdateTransactionResponse>, Status> {
         let mut blockchain = self.node.blockchain.lock().await;
         let req_transaction = request.into_inner().transactions;
+        println!(
+            "[INFO] New transaction recieved from clien {:?}",
+            req_transaction.len()
+        );
         for transaction in &req_transaction {
             if transaction.check_transaction_validity() {
                 blockchain.transactions.push(transaction.clone());

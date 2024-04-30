@@ -5,18 +5,16 @@ pub struct Blockchain {
     pub transactions: Vec<Transaction>,
     pub blockchain: Vec<Block>,
     pub difficulty: i32,
-    pub rx: Receiver<bool>,
 }
 
 /// Implement the BlockchainNetwork struct
 /// This struct will hold the list of nodes and the blockchain
 impl Blockchain {
-    pub fn new(rx: Receiver<bool>) -> Blockchain {
+    pub fn new() -> Blockchain {
         Blockchain {
             transactions: Vec::new(),
             blockchain: Vec::new(),
-            difficulty: 4,
-            rx: rx,
+            difficulty: 5,
         }
     }
     /// Check if the block is valid
@@ -35,60 +33,6 @@ impl Blockchain {
             current_timestamp = block.timestamp;
         }
         true
-    }
-
-    /// Add the block to the blockchain
-    pub async fn add_block_to_blockchain(&mut self, block: Block) {
-        self.blockchain.push(block);
-    }
-
-    pub async fn mine_new_block(
-        &mut self,
-        transactions: Vec<Transaction>,
-    ) -> Result<Block, Status> {
-        let last_block = self.blockchain.last().unwrap();
-        let mut nonce = 0;
-
-        let mut new_block = Block {
-            id: last_block.id + 1,
-            timestamp: 0, // TODO
-            prev_hash: last_block.hash.clone(),
-            hash: "".to_string(),
-            nonce: 0,
-            difficulty: self.difficulty,
-            transactions: transactions.clone(),
-        };
-
-        let mut current_hash = new_block.compute_hash(nonce);
-
-        while !self.check_hash_validity(&current_hash, self.difficulty) {
-            // if received a signal to stop mining, then return an error
-            if let Ok(_) = self.rx.try_recv() {
-                return Err(Status::cancelled("Mining stopped"));
-            }
-
-            nonce += 1;
-            current_hash = new_block.compute_hash(nonce);
-        }
-
-        new_block.nonce = nonce;
-        new_block.hash = current_hash.clone();
-
-        // send the new block to the rest of the network
-        Ok(new_block)
-    }
-
-    /// check if the hash has the required number of leading zeros
-    fn check_hash_validity(&self, hash: &String, difficulty: i32) -> bool {
-        let mut count = 0;
-        for c in hash.chars() {
-            if c == '0' {
-                count += 1;
-            } else {
-                break;
-            }
-        }
-        count < difficulty
     }
 }
 
@@ -159,6 +103,11 @@ impl Transaction {
         }
 
         if self.hash != self.compute_hash() {
+            println!(
+                "Hash: {}, computed hash: {}",
+                self.hash,
+                self.compute_hash()
+            );
             return false;
         }
         true
@@ -169,4 +118,58 @@ impl Transaction {
 pub fn sha_hash(data: &str) -> String {
     let hash = sha256::digest(data.as_bytes());
     hash.to_string()
+}
+
+/// check if the hash has the required number of leading zeros
+fn check_hash_validity(hash: &String, difficulty: i32) -> bool {
+    let mut count = 0;
+    for c in hash.chars() {
+        if c == '0' {
+            count += 1;
+        } else {
+            break;
+        }
+    }
+    count >= difficulty
+}
+
+pub async fn mine_new_block(
+    last_block: &Block,
+    transactions: Vec<Transaction>,
+    difficulty: i32,
+    rx: &mut Receiver<bool>,
+) -> Result<Block, Status> {
+    println!("[INFO] Mining new block");
+    let mut nonce = 0;
+
+    let mut new_block = Block {
+        id: last_block.id + 1,
+        timestamp: 0, // TODO
+        prev_hash: last_block.hash.clone(),
+        hash: "".to_string(),
+        nonce: 0,
+        difficulty: difficulty,
+        transactions: transactions.clone(),
+    };
+
+    let mut current_hash = new_block.compute_hash(nonce);
+
+    while !check_hash_validity(&current_hash, difficulty) {
+        // if received a signal to stop mining, then return an error
+        if let Ok(_) = rx.try_recv() {
+            println!("[INFO] Mining interrupted");
+            return Err(Status::cancelled("Mining stopped"));
+        }
+
+        nonce += 1;
+        current_hash = new_block.compute_hash(nonce);
+    }
+
+    new_block.nonce = nonce;
+    new_block.hash = current_hash.clone();
+
+    println!("[INFO] New block mined: {:?}", new_block);
+
+    // send the new block to the rest of the network
+    Ok(new_block)
 }
