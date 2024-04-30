@@ -11,7 +11,8 @@ use std::sync::Arc;
 use tokio::{sync::mpsc, task::JoinSet};
 use tonic::{transport::Server, Request};
 
-pub async fn start(port: u32, peer_port: Option<u32>) {
+pub async fn start(port: u16, peer_port: Option<u16>) {
+    let port: u32 = port as u32;
     let (tx, rx) = mpsc::channel::<bool>(1);
     let node = Arc::new(Node::new(port));
     let network = Network {
@@ -40,7 +41,7 @@ pub async fn start(port: u32, peer_port: Option<u32>) {
         // broadcast the new node to the rest of the network
         let mut broadcast = JoinSet::new();
         res.into_inner().nodes.into_iter().for_each(|node| {
-            if node.port == port || node.port == peer {
+            if node.port == port || node.port == peer as u32 {
                 return;
             }
             let node_info = node_info.clone();
