@@ -40,7 +40,9 @@ pub async fn start(port: u16, peer_port: Option<u16>) {
 
         // broadcast the new node to the rest of the network
         let mut broadcast = JoinSet::new();
-        res.into_inner().nodes.into_iter().for_each(|node| {
+        let peer_list = res.into_inner().nodes;
+        node.peers.lock().await.extend(peer_list.clone());
+        peer_list.into_iter().for_each(|node| {
             if node.port == port || node.port == peer as u32 {
                 return;
             }
@@ -60,6 +62,9 @@ pub async fn start(port: u16, peer_port: Option<u16>) {
             });
         });
         while let Some(_) = broadcast.join_next().await {}
+    } else {
+        // if the node is the master node, then add itself to the peer list
+        node.peers.lock().await.push(node_info.clone());
     }
 
     // start a thread to handle incoming transactions, if any transaction is received, compute the hash and add it to the blockchain
