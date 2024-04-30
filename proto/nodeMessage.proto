@@ -4,6 +4,8 @@ package node;
 service NodeMessage {
     rpc joinNetwork(JoinNetworkRequest) returns (JoinNetworkResponse) {}
     rpc updateBlockchain(UpdateBlockchainRequest) returns (UpdateBlockchainResponse) {}
+    rpc updateTransaction(UpdateTransactionRequest) returns (UpdateTransactionResponse) {}
+    rpc updateClientTransaction(UpdateTransactionRequest) returns (UpdateTransactionResponse) {}
 }
 
 message JoinNetworkRequest {
@@ -48,3 +50,10 @@ message UpdateBlockchainResponse {
     bool success = 1;
 }
 
+message UpdateTransactionRequest {
+    repeated Transaction transactions = 1;
+}
+
+message UpdateTransactionResponse {
+    bool success = 1;
+}

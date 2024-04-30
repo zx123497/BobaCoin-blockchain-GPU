@@ -1,13 +1,16 @@
 use crate::models::node::Node;
+use crate::node::node_message_client::NodeMessageClient;
 use crate::node::{
     node_message_server::NodeMessage, JoinNetworkRequest, JoinNetworkResponse,
     UpdateBlockchainRequest, UpdateBlockchainResponse,
 };
+use crate::node::{UpdateTransactionRequest, UpdateTransactionResponse};
 use std::sync::Arc;
+use tokio::sync::mpsc::Sender;
 use tonic::{Request, Response, Status};
-
 pub struct Network {
     pub node: Arc<Node>,
+    pub tx: Sender<bool>,
 }
 
 /// Implement the NodeMessage trait for the BlockchainNetwork struct
@@ -39,10 +42,65 @@ impl NodeMessage for Network {
         let mut current_bc = self.node.blockchain.lock().await;
 
         if request_bc.len() >= current_bc.blockchain.len() {
-            current_bc.blockchain = request_bc;
-            Ok(Response::new(UpdateBlockchainResponse { success: true }))
+            if current_bc.check_blockchain_validity().await {
+                current_bc.blockchain = request_bc;
+                match self.tx.send(true).await {
+                    Ok(_) => Ok(Response::new(UpdateBlockchainResponse { success: true })),
+                    Err(_) => Ok(Response::new(UpdateBlockchainResponse { success: false })),
+                }
+            } else {
+                Ok(Response::new(UpdateBlockchainResponse { success: false }))
+            }
         } else {
             Ok(Response::new(UpdateBlockchainResponse { success: false }))
         }
+    }
+
+    /// Receive the transactions from another node and add them to the current node's transaction pool
+    async fn update_transaction(
+        &self,
+        request: Request<UpdateTransactionRequest>,
+    ) -> Result<Response<UpdateTransactionResponse>, Status> {
+        let mut blockchain = self.node.blockchain.lock().await;
+        for transaction in request.into_inner().transactions {
+            if blockchain.transactions.contains(&transaction) {
+                continue;
+            }
+            if transaction.check_transaction_validity() {
+                blockchain.transactions.push(transaction);
+            }
+        }
+        Ok(Response::new(UpdateTransactionResponse { success: true }))
+    }
+
+    /// Receive the transactions from client and broadcast them to the network
+    async fn update_client_transaction(
+        &self,
+        request: Request<UpdateTransactionRequest>,
+    ) -> Result<Response<UpdateTransactionResponse>, Status> {
+        let mut blockchain = self.node.blockchain.lock().await;
+        let req_transaction = request.into_inner().transactions;
+        for transaction in &req_transaction {
+            if transaction.check_transaction_validity() {
+                blockchain.transactions.push(transaction.clone());
+            }
+        }
+
+        // broadcast the new transaction to the rest of the network
+        for node in self.node.peers.lock().await.iter() {
+            if node.port == self.node.port {
+                continue;
+            }
+            let mut client = NodeMessageClient::connect(format!("http://[::1]:{}", node.port))
+                .await
+                .unwrap();
+            client
+                .update_transaction(Request::new(UpdateTransactionRequest {
+                    transactions: req_transaction.clone(),
+                }))
+                .await
+                .unwrap();
+        }
+        Ok(Response::new(UpdateTransactionResponse { success: true }))
     }
 }
