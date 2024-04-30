@@ -11,12 +11,12 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn new(port: i32) -> Node {
+    pub fn new(port: u16) -> Node {
         Node {
             peers: Mutex::new(Vec::new()),
             blockchain: Mutex::new(Blockchain::default()),
             ip: "127.0.0.1".to_string(),
-            port: port,
+            port: port as i32,
             id: Uuid::new_v4(),
         }
     }

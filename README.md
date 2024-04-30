@@ -9,7 +9,28 @@ As indicated in the lab writeup, you have an opportunity to design and implement
 
 ## Dependencies to run this code
 
-...
+In order to build `tonic` >= 0.8.0, you need the `protoc` Protocol Buffers compiler, along with Protocol Buffers resource files.
+
+#### Ubuntu
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y protobuf-compiler libprotobuf-dev
+```
+
+#### Alpine Linux
+
+```sh
+sudo apk add protoc protobuf-dev
+```
+
+#### macOS
+
+Assuming [Homebrew](https://brew.sh/) is already installed. (If not, see instructions for installing Homebrew on [the Homebrew website](https://brew.sh/).)
+
+```zsh
+brew install protobuf
+```
 
 ## Description of tests and how to run them
 
