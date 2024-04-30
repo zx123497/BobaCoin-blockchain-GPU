@@ -48,7 +48,7 @@ pub async fn start(port: u16, peer_port: Option<u16>) {
             }
             let node_info = node_info.clone();
             broadcast.spawn(async move {
-                println!("Broadcasting to node: {:?}", node.port);
+                println!("[INFO] Broadcasting to node: {:?}", node.port);
                 let mut client =
                     NodeMessageClient::connect(format!("http://{}:{}", node.ip, node.port))
                         .await
@@ -72,7 +72,7 @@ pub async fn start(port: u16, peer_port: Option<u16>) {
 
     tokio::spawn(handle_transactions(node, port, rx));
 
-    println!("Node server listening on {}", addr);
+    println!("[INFO] Node server listening on {}", addr);
     Server::builder()
         .add_service(NodeMessageServer::new(network))
         .serve(addr)
@@ -141,7 +141,7 @@ pub async fn handle_transactions(node: Arc<Node>, port: u32, mut rx: mpsc::Recei
                 drop(blockchain);
             }
             Err(error) => {
-                println!("[Error] Failed to mine new block: {:?}", error);
+                println!("[Warning] Failed to mine new block: {:?}", error);
             }
         }
     }

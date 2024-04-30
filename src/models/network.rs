@@ -29,7 +29,7 @@ impl NodeMessage for Network {
         let reply = JoinNetworkResponse {
             nodes: (*peers).clone(),
         };
-        println!("New node joined the network: {:?}", req_node.port);
+        println!("[INFO] New node joined the network: {:?}", req_node.port);
         Ok(Response::new(reply))
     }
 
@@ -49,10 +49,7 @@ impl NodeMessage for Network {
                     .retain(|x| !request_bc.iter().any(|y| y.transactions.contains(x)));
 
                 current_bc.chain = request_bc;
-                println!(
-                    "[INFO] Update blockchain from other peer: {:?}",
-                    current_bc.chain.len()
-                );
+                println!("[INFO] Update blockchain from other peer");
                 match self.tx.send(true).await {
                     Ok(_) => Ok(Response::new(UpdateBlockchainResponse { success: true })),
                     Err(_) => Ok(Response::new(UpdateBlockchainResponse { success: false })),
@@ -79,10 +76,7 @@ impl NodeMessage for Network {
                 blockchain.transactions.push(transaction);
             }
         }
-        println!(
-            "[INFO] Update transaction from other peer: {:?}",
-            blockchain.transactions.len()
-        );
+        println!("[INFO] Update transaction from other peer");
         Ok(Response::new(UpdateTransactionResponse { success: true }))
     }
 
