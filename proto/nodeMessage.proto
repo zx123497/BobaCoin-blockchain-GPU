@@ -6,7 +6,12 @@ service NodeMessage {
     rpc updateBlockchain(UpdateBlockchainRequest) returns (UpdateBlockchainResponse) {}
     rpc updateTransaction(UpdateTransactionRequest) returns (UpdateTransactionResponse) {}
     rpc updateClientTransaction(UpdateTransactionRequest) returns (UpdateTransactionResponse) {}
+    
+
+    // only for testing
     rpc getBlockchain(GetBlockchainRequest) returns (GetBlockchainResponse) {}
+    rpc generateTransaction(GenerateTransactionRequest) returns (GenerateTransactionResponse) {}
+    rpc getPeerList(GetPeerListRequest) returns (GetPeerListResponse) {}
 }
 
 message JoinNetworkRequest {
@@ -15,6 +20,7 @@ message JoinNetworkRequest {
 
 message JoinNetworkResponse {
     repeated NodeInfo nodes = 1;
+    repeated Block chain = 2;
 }
 
 message NodeInfo {
@@ -40,7 +46,8 @@ message Transaction {
     string receiver = 4;
     int32 amount = 5;
     uint32 timestamp = 6;
-    int32 fee = 7;
+    string signature = 7;
+    int32 fee = 8;
 }
 
 message UpdateBlockchainRequest {
@@ -59,9 +66,33 @@ message UpdateTransactionResponse {
     bool success = 1;
 }
 
+
+
+
+// only for testing
 message GetBlockchainRequest {
 }
 
 message GetBlockchainResponse {
     repeated Block chain = 1;
+}
+
+message GenerateTransactionRequest {
+    int32 id = 1;
+    string sender = 2;
+    string privateKey = 3;
+    string receiver = 4;
+    int32 amount = 5;
+    int32 fee = 6;
+}
+
+message GenerateTransactionResponse {
+    Transaction transaction = 1;
+}
+
+message GetPeerListRequest {
+}
+
+message GetPeerListResponse {
+    repeated NodeInfo nodes = 1;
 }

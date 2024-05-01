@@ -1,4 +1,5 @@
 use crate::node::{Block, Transaction};
+use openssl::{hash::MessageDigest, pkey::PKey, rsa::Rsa, sign::Verifier};
 use std::time::SystemTime;
 use tokio::sync::mpsc::Receiver;
 use tonic::Status;
@@ -75,7 +76,6 @@ impl Block {
             }
             current_timestamp = transaction.timestamp;
         }
-
         true
     }
 }
@@ -111,7 +111,21 @@ impl Transaction {
             );
             return false;
         }
-        true
+
+        match self.verify_signature() {
+            Ok(valid) => valid,
+            Err(_) => false,
+        }
+    }
+
+    fn verify_signature(&self) -> Result<bool, openssl::error::ErrorStack> {
+        let public_key = hex::decode(&self.sender).unwrap();
+        let pub_key = Rsa::public_key_from_pem(public_key.as_slice())?;
+        let keypair = PKey::from_rsa(pub_key)?;
+        let mut verifier = Verifier::new(MessageDigest::sha256(), &keypair)?;
+        verifier.update(self.hash.as_bytes())?;
+        let signature = hex::decode(&self.signature).unwrap();
+        verifier.verify(&signature)
     }
 }
 

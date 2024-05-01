@@ -27,7 +27,7 @@ pub async fn start(port: u16, peer_port: Option<u16>) {
 
     // if the node is not the master node, then should introduce itself to every node in the network
     if let Some(peer) = peer_port {
-        // connect to the super node
+        // connect to the peer node
         let mut client = NodeMessageClient::connect(format!("http://[::1]:{}", peer))
             .await
             .expect("Failed to connect to peer node");
@@ -38,10 +38,15 @@ pub async fn start(port: u16, peer_port: Option<u16>) {
             .await
             .expect("Failed to join network on peer node");
 
+        // get the peer list and the blockchain from the peer node
+        let res = res.into_inner();
+        let peer_list = res.nodes;
+        node.peers.lock().await.extend(peer_list.clone());
+        node.blockchain.lock().await.chain = res.chain;
+
         // broadcast the new node to the rest of the network
         let mut broadcast = JoinSet::new();
-        let peer_list = res.into_inner().nodes;
-        node.peers.lock().await.extend(peer_list.clone());
+
         peer_list.into_iter().for_each(|node| {
             if node.port == port || node.port == peer as u32 {
                 return;
@@ -99,7 +104,6 @@ pub async fn handle_transactions(node: Arc<Node>, port: u32, mut rx: mpsc::Recei
         }
 
         let transactions = blockchain.transactions.clone();
-
         drop(blockchain);
         // if there are transactions in the transaction pool, then mine a new block
         if transactions.is_empty() {

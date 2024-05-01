@@ -5,9 +5,16 @@ use crate::node::{
     GetBlockchainResponse, JoinNetworkRequest, JoinNetworkResponse, UpdateBlockchainRequest,
     UpdateBlockchainResponse, UpdateTransactionRequest, UpdateTransactionResponse,
 };
+use crate::node::{
+    GenerateTransactionRequest, GenerateTransactionResponse, GetPeerListRequest,
+    GetPeerListResponse, Transaction,
+};
+use openssl::{hash::MessageDigest, pkey::PKey, rsa::Rsa, sign::Signer};
 use std::sync::Arc;
+use std::time::SystemTime;
 use tokio::sync::mpsc::Sender;
 use tonic::{Request, Response, Status};
+
 pub struct Network {
     pub node: Arc<Node>,
     pub tx: Sender<bool>,
@@ -28,6 +35,7 @@ impl NodeMessage for Network {
 
         let reply = JoinNetworkResponse {
             nodes: (*peers).clone(),
+            chain: self.node.blockchain.lock().await.chain.clone(),
         };
         println!("[INFO] New node joined the network: {:?}", req_node.port);
         Ok(Response::new(reply))
@@ -124,6 +132,48 @@ impl NodeMessage for Network {
         let blockchain = self.node.blockchain.lock().await;
         Ok(Response::new(GetBlockchainResponse {
             chain: blockchain.chain.clone(),
+        }))
+    }
+
+    async fn generate_transaction(
+        &self,
+        request: Request<GenerateTransactionRequest>,
+    ) -> Result<Response<GenerateTransactionResponse>, Status> {
+        let req = request.into_inner();
+        let mut transaction = Transaction {
+            id: req.id,
+            sender: req.sender,
+            receiver: req.receiver,
+            amount: req.amount,
+            fee: req.fee,
+            timestamp: SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as u32,
+            hash: "".to_string(),
+            signature: "".to_string(),
+        };
+        let private_key_string = hex::decode(transaction.sender.clone()).unwrap();
+        let private_key = Rsa::private_key_from_pem(private_key_string.as_slice()).unwrap();
+        let keypair = PKey::from_rsa(private_key).unwrap();
+        transaction.hash = transaction.compute_hash();
+        let mut signer = Signer::new(MessageDigest::sha256(), &keypair).unwrap();
+        signer.update(transaction.hash.as_bytes()).unwrap();
+        let signature = signer.sign_to_vec().unwrap();
+        transaction.signature = hex::encode(signature);
+
+        Ok(Response::new(GenerateTransactionResponse {
+            transaction: Some(transaction),
+        }))
+    }
+
+    async fn get_peer_list(
+        &self,
+        _: Request<GetPeerListRequest>,
+    ) -> Result<Response<GetPeerListResponse>, Status> {
+        let peers = self.node.peers.lock().await;
+        Ok(Response::new(GetPeerListResponse {
+            nodes: (*peers).clone(),
         }))
     }
 }
