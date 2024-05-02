@@ -16,16 +16,22 @@ impl Blockchain {
         Blockchain {
             transactions: Vec::new(),
             chain: Vec::new(),
-            difficulty: 5,
+            difficulty: 4,
         }
     }
     /// Check if the block is valid
     pub async fn check_blockchain_validity(&self) -> bool {
         let mut current_timestamp = 0;
+        let mut prev_hash = "".to_string();
         for (i, block) in self.chain.iter().enumerate() {
             if i != block.id as usize {
                 return false;
             }
+
+            if block.prev_hash != prev_hash {
+                return false;
+            }
+
             if block.timestamp <= current_timestamp {
                 return false;
             }
@@ -33,6 +39,7 @@ impl Blockchain {
                 return false;
             }
             current_timestamp = block.timestamp;
+            prev_hash = block.hash.clone();
         }
         true
     }
@@ -125,6 +132,7 @@ impl Transaction {
         let mut verifier = Verifier::new(MessageDigest::sha256(), &keypair)?;
         verifier.update(self.hash.as_bytes())?;
         let signature = hex::decode(&self.signature).unwrap();
+        println!("Passed ? {:?}", verifier.verify(&signature));
         verifier.verify(&signature)
     }
 }
@@ -190,7 +198,10 @@ pub async fn mine_new_block(
         .unwrap()
         .as_secs() as u32;
 
-    println!("[INFO] New block mined: {:?}", new_block);
+    println!(
+        "[INFO] New block mined: id = {:?}, hash = {:?}",
+        new_block.id, new_block.hash
+    );
 
     // send the new block to the rest of the network
     Ok(new_block)

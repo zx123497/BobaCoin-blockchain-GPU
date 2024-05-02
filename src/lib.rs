@@ -3,9 +3,10 @@ pub mod node {
     tonic::include_proto!("node");
 }
 use crate::models::{blockchain::mine_new_block, network::Network, node::Node};
+use node::node_message_client::NodeMessageClient;
 use node::{
-    node_message_client::NodeMessageClient, node_message_server::NodeMessageServer, Block,
-    JoinNetworkRequest, NodeInfo, UpdateBlockchainRequest,
+    node_message_server::NodeMessageServer, Block, JoinNetworkRequest, NodeInfo,
+    UpdateBlockchainRequest,
 };
 use std::sync::Arc;
 use tokio::{sync::mpsc, task::JoinSet};
@@ -93,7 +94,7 @@ pub async fn handle_transactions(node: Arc<Node>, port: u32, mut rx: mpsc::Recei
         let mut last_block = chain.last().cloned();
         if last_block.is_none() {
             last_block = Some(Block {
-                id: 0,
+                id: -1,
                 timestamp: 0,
                 nonce: 0,
                 prev_hash: "".to_string(),
@@ -132,12 +133,47 @@ pub async fn handle_transactions(node: Arc<Node>, port: u32, mut rx: mpsc::Recei
                         NodeMessageClient::connect(format!("http://[::1]:{}", node.port))
                             .await
                             .unwrap();
-                    client
+                    match client
                         .update_blockchain(Request::new(UpdateBlockchainRequest {
-                            chain: blockchain.chain.clone(),
+                            blocks: vec![block.clone()],
                         }))
                         .await
-                        .unwrap();
+                    {
+                        Ok(res) => {
+                            let response = res.into_inner();
+                            if !response.success {
+                                if response.chain_length >= blockchain.chain.len() as u32 {
+                                    continue;
+                                }
+
+                                println!(
+                                    "[Warning] Failed to update blockchain on node: {}, retrying...",
+                                    node.port
+                                );
+
+                                let blocks_to_update =
+                                    blockchain.chain[response.chain_length as usize..].to_vec();
+
+                                println!(
+                                    "[INFO] Sending missing blocks to node: {}, blocks: {:?}",
+                                    node.port, blocks_to_update
+                                );
+
+                                client
+                                    .update_blockchain(Request::new(UpdateBlockchainRequest {
+                                        blocks: blocks_to_update,
+                                    }))
+                                    .await
+                                    .unwrap();
+                            }
+                        }
+                        Err(error) => {
+                            println!(
+                                "[Warning] Failed to update blockchain on node: {}, {:?}",
+                                node.port, error
+                            );
+                        }
+                    }
                 }
                 for transaction in transactions {
                     blockchain.transactions.retain(|x| x != &transaction);
