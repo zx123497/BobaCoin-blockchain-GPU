@@ -46,27 +46,88 @@ impl NodeMessage for Network {
         &self,
         request: Request<UpdateBlockchainRequest>,
     ) -> Result<Response<UpdateBlockchainResponse>, Status> {
-        let request_bc = request.into_inner().chain;
+        let req = request.into_inner();
+        let blocks = req.blocks;
         let mut current_bc = self.node.blockchain.lock().await;
-
-        if request_bc.len() > current_bc.chain.len() {
-            if current_bc.check_blockchain_validity().await {
-                // delete transactions that are already in the blockchain
-                current_bc
-                    .transactions
-                    .retain(|x| !request_bc.iter().any(|y| y.transactions.contains(x)));
-
-                current_bc.chain = request_bc;
-                println!("[INFO] Update blockchain from other peer");
-                match self.tx.send(true).await {
-                    Ok(_) => Ok(Response::new(UpdateBlockchainResponse { success: true })),
-                    Err(_) => Ok(Response::new(UpdateBlockchainResponse { success: false })),
-                }
-            } else {
-                Ok(Response::new(UpdateBlockchainResponse { success: false }))
-            }
+        if blocks.is_empty() {
+            println!("[Warning] Received blocks is empty");
+            return Ok(Response::new(UpdateBlockchainResponse {
+                success: false,
+                chain_length: current_bc.chain.len() as u32,
+            }));
+        }
+        if blocks[0].id as usize > current_bc.chain.len() {
+            // should return false to get updated blockchain
+            println!("[Warning] Need previous blocks to update blockchain, current blockchain length: {}",
+                     current_bc.chain.len());
+            return Ok(Response::new(UpdateBlockchainResponse {
+                success: false,
+                chain_length: current_bc.chain.len() as u32,
+            }));
         } else {
-            Ok(Response::new(UpdateBlockchainResponse { success: false }))
+            // check if the received blockchain is longer than the current blockchain
+            if blocks.len() + (blocks[0].id as usize) <= current_bc.chain.len() {
+                println!("[Warning] Received blockchain is shorter than current blockchain");
+                return Ok(Response::new(UpdateBlockchainResponse {
+                    success: false,
+                    chain_length: current_bc.chain.len() as u32,
+                }));
+            }
+            let last_block = current_bc.chain[blocks[0].id as usize - 1].clone();
+            if last_block.hash != blocks[0].prev_hash {
+                println!("[Warning] Previous hash does not match");
+                return Ok(Response::new(UpdateBlockchainResponse {
+                    success: false,
+                    chain_length: current_bc.chain.len() as u32,
+                }));
+            }
+
+            let mut prev_hash = last_block.hash.clone();
+            let mut encluded_transactions = Vec::<Transaction>::new();
+            // check if the received blockchain is valid
+            for block in &blocks {
+                if block.prev_hash != prev_hash {
+                    println!("[Warning] Previous hash does not match in block ");
+                    return Ok(Response::new(UpdateBlockchainResponse {
+                        success: false,
+                        chain_length: current_bc.chain.len() as u32,
+                    }));
+                }
+
+                prev_hash = block.hash.clone();
+
+                if !block.check_block_validity() {
+                    println!("[Warning] Invalid block in received blockchain");
+                    return Ok(Response::new(UpdateBlockchainResponse {
+                        success: false,
+                        chain_length: current_bc.chain.len() as u32,
+                    }));
+                }
+
+                encluded_transactions.extend(block.transactions.clone());
+            }
+
+            // if the received blockchain is valid, then update the current blockchain
+            current_bc.chain.extend(blocks.clone());
+
+            // remove the transactions that are included in the new blockchain
+            current_bc
+                .transactions
+                .retain(|tx| !encluded_transactions.contains(tx));
+
+            println!("[INFO] Updated blockchain from other peer.");
+
+            match self.tx.send(true).await {
+                Ok(_) => Ok(Response::new(UpdateBlockchainResponse {
+                    success: true,
+                    chain_length: current_bc.chain.len() as u32,
+                })),
+
+                Err(_) => Ok(Response::new(UpdateBlockchainResponse {
+                    success: false,
+                    chain_length: current_bc.chain.len() as u32,
+                })),
+            }
         }
     }
 
@@ -102,6 +163,8 @@ impl NodeMessage for Network {
             }
             if transaction.check_transaction_validity() {
                 blockchain.transactions.push(transaction.clone());
+            } else {
+                println!("[INFO] Invalid transaction recieved from client");
             }
         }
 
@@ -153,8 +216,8 @@ impl NodeMessage for Network {
             hash: "".to_string(),
             signature: "".to_string(),
         };
-        let private_key_string = hex::decode(transaction.sender.clone()).unwrap();
-        let private_key = Rsa::private_key_from_pem(private_key_string.as_slice()).unwrap();
+        let private_key_string = hex::decode(req.private_key).unwrap();
+        let private_key = Rsa::private_key_from_pem(&private_key_string).unwrap();
         let keypair = PKey::from_rsa(private_key).unwrap();
         transaction.hash = transaction.compute_hash();
         let mut signer = Signer::new(MessageDigest::sha256(), &keypair).unwrap();

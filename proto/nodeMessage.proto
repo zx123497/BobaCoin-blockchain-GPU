@@ -51,11 +51,12 @@ message Transaction {
 }
 
 message UpdateBlockchainRequest {
-    repeated Block chain = 1;
+    repeated Block blocks = 1;
 }
 
 message UpdateBlockchainResponse {
     bool success = 1;
+    uint32 chainLength = 2;
 }
 
 message UpdateTransactionRequest {
