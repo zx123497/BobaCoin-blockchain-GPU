@@ -1,14 +1,14 @@
 mod common;
 use blockchain::node::node_message_client::NodeMessageClient;
 use blockchain::node::GenerateTransactionRequest;
-use blockchain::node::GetTransactionListRequest;
+use blockchain::node::GetBlockchainRequest;
 use blockchain::node::UpdateTransactionRequest;
 use blockchain::start;
 use std::time::Duration;
 use tonic::Request;
 
 #[tokio::test]
-async fn test_submit_transaction() {
+async fn test_mine_block() {
     let mut tasks = Vec::new();
 
     let nodes = vec![50000, 50001, 50002];
@@ -43,19 +43,19 @@ async fn test_submit_transaction() {
         .unwrap();
 
     // wait for the transaction to be sent to the blockchain
-    tokio::time::sleep(Duration::from_millis(200)).await;
+    tokio::time::sleep(Duration::from_secs(5)).await;
 
     for node in &nodes {
         let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", node))
             .await
             .expect("Failed to connect to node");
         let res = grpc_client
-            .get_transaction_list(Request::new(GetTransactionListRequest {}))
+            .get_blockchain(Request::new(GetBlockchainRequest {}))
             .await
             .unwrap();
-        let transactions = res.into_inner().transactions;
-        assert_eq!(transactions.len(), 1);
-        assert_eq!(transactions[0], transaction);
+        let blockchain = res.into_inner().chain;
+        assert_eq!(blockchain.len(), 1);
+        assert_eq!(blockchain[0].transactions[0], transaction);
     }
     for task in tasks {
         task.abort();
