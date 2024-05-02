@@ -12,6 +12,7 @@ service NodeMessage {
     rpc getBlockchain(GetBlockchainRequest) returns (GetBlockchainResponse) {}
     rpc generateTransaction(GenerateTransactionRequest) returns (GenerateTransactionResponse) {}
     rpc getPeerList(GetPeerListRequest) returns (GetPeerListResponse) {}
+    rpc getTransactionList(GetTransactionListRequest) returns (GetTransactionListResponse) {}
 }
 
 message JoinNetworkRequest {
@@ -96,4 +97,11 @@ message GetPeerListRequest {
 
 message GetPeerListResponse {
     repeated NodeInfo nodes = 1;
+}
+
+message GetTransactionListRequest {
+}
+
+message GetTransactionListResponse {
+    repeated Transaction transactions = 1;
 }

@@ -7,7 +7,7 @@ use crate::node::{
 };
 use crate::node::{
     GenerateTransactionRequest, GenerateTransactionResponse, GetPeerListRequest,
-    GetPeerListResponse, Transaction,
+    GetPeerListResponse, GetTransactionListRequest, GetTransactionListResponse, Transaction,
 };
 use openssl::{hash::MessageDigest, pkey::PKey, rsa::Rsa, sign::Signer};
 use std::sync::Arc;
@@ -237,6 +237,16 @@ impl NodeMessage for Network {
         let peers = self.node.peers.lock().await;
         Ok(Response::new(GetPeerListResponse {
             nodes: (*peers).clone(),
+        }))
+    }
+
+    async fn get_transaction_list(
+        &self,
+        _: Request<GetTransactionListRequest>,
+    ) -> Result<Response<GetTransactionListResponse>, Status> {
+        let blockchain = self.node.blockchain.lock().await;
+        Ok(Response::new(GetTransactionListResponse {
+            transactions: blockchain.transactions.clone(),
         }))
     }
 }
