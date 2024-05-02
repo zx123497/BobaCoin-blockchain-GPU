@@ -32,10 +32,12 @@ impl NodeMessage for Network {
         let req_node = request.into_inner().node.unwrap();
 
         peers.push(req_node.clone());
+        let current_bc = self.node.blockchain.lock().await;
 
         let reply = JoinNetworkResponse {
             nodes: (*peers).clone(),
-            chain: self.node.blockchain.lock().await.chain.clone(),
+            chain: current_bc.chain.clone(),
+            transactions: current_bc.transactions.clone(),
         };
         println!("[INFO] New node joined the network: {:?}", req_node.port);
         Ok(Response::new(reply))
@@ -73,20 +75,22 @@ impl NodeMessage for Network {
                     chain_length: current_bc.chain.len() as u32,
                 }));
             }
-            let last_block = current_bc.chain[blocks[0].id as usize - 1].clone();
-            if last_block.hash != blocks[0].prev_hash {
-                println!("[Warning] Previous hash does not match");
-                return Ok(Response::new(UpdateBlockchainResponse {
-                    success: false,
-                    chain_length: current_bc.chain.len() as u32,
-                }));
+            if blocks[0].id != 0 {
+                let last_block = current_bc.chain[blocks[0].id as usize - 1].clone();
+                if last_block.hash != blocks[0].prev_hash {
+                    println!("[Warning] Previous hash does not match");
+                    return Ok(Response::new(UpdateBlockchainResponse {
+                        success: false,
+                        chain_length: current_bc.chain.len() as u32,
+                    }));
+                }
             }
 
-            let mut prev_hash = last_block.hash.clone();
+            let mut prev_hash = blocks[0].hash.clone();
             let mut encluded_transactions = Vec::<Transaction>::new();
             // check if the received blockchain is valid
-            for block in &blocks {
-                if block.prev_hash != prev_hash {
+            for (i, block) in blocks.iter().enumerate() {
+                if i != 0 && block.prev_hash != prev_hash {
                     println!("[Warning] Previous hash does not match in block ");
                     return Ok(Response::new(UpdateBlockchainResponse {
                         success: false,

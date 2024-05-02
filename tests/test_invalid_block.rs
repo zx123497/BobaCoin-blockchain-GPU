@@ -1,14 +1,15 @@
 mod common;
 use blockchain::node::node_message_client::NodeMessageClient;
 use blockchain::node::GenerateTransactionRequest;
-use blockchain::node::GetTransactionListRequest;
+use blockchain::node::GetBlockchainRequest;
+use blockchain::node::UpdateBlockchainRequest;
 use blockchain::node::UpdateTransactionRequest;
 use blockchain::start;
 use std::time::Duration;
 use tonic::Request;
 
 #[tokio::test]
-async fn test_submit_transaction() {
+async fn test_mine_block() {
     let mut tasks = Vec::new();
 
     let nodes = vec![50000, 50001, 50002];
@@ -35,32 +36,63 @@ async fn test_submit_transaction() {
     }));
 
     let transaction = res.await.unwrap().into_inner().transaction.unwrap();
-    let mut invalid_transaction = transaction.clone();
-    invalid_transaction.amount = 1000;
-
-    // send a valid transaction and an invalid transaction
     grpc_client
         .update_client_transaction(Request::new(UpdateTransactionRequest {
-            transactions: vec![transaction.clone(), invalid_transaction.clone()],
+            transactions: vec![transaction.clone()],
         }))
         .await
         .unwrap();
 
     // wait for the transaction to be sent to the blockchain
-    tokio::time::sleep(Duration::from_millis(200)).await;
+    tokio::time::sleep(Duration::from_secs(5)).await;
 
-    // check that only the valid transaction is in every node
+    // simulate node 0 being a bad node, and trying to spread a bad block to the network
+    let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", nodes[0]))
+        .await
+        .expect("Failed to connect to node");
+
+    let res = grpc_client
+        .get_blockchain(Request::new(GetBlockchainRequest {}))
+        .await
+        .unwrap();
+    let blockchain = res.into_inner().chain;
+
+    // create a bad block
+    let mut bad_block = blockchain[0].clone();
+    bad_block.id = 1;
+    bad_block.transactions[0].amount = 1000;
+
+    let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", nodes[1]))
+        .await
+        .expect("Failed to connect to node");
+    grpc_client
+        .update_blockchain(Request::new(UpdateBlockchainRequest {
+            blocks: vec![bad_block.clone()],
+        }))
+        .await
+        .unwrap();
+
+    let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", nodes[2]))
+        .await
+        .expect("Failed to connect to node");
+    grpc_client
+        .update_blockchain(Request::new(UpdateBlockchainRequest {
+            blocks: vec![bad_block.clone()],
+        }))
+        .await
+        .unwrap();
+
     for node in &nodes {
         let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", node))
             .await
             .expect("Failed to connect to node");
         let res = grpc_client
-            .get_transaction_list(Request::new(GetTransactionListRequest {}))
+            .get_blockchain(Request::new(GetBlockchainRequest {}))
             .await
             .unwrap();
-        let transactions = res.into_inner().transactions;
-        assert_eq!(transactions.len(), 1);
-        assert_eq!(transactions[0], transaction);
+        let blockchain = res.into_inner().chain;
+        assert_eq!(blockchain.len(), 1);
+        assert_eq!(blockchain[0].transactions[0], transaction);
     }
     for task in tasks {
         task.abort();

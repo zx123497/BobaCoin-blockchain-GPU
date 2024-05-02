@@ -16,7 +16,7 @@ impl Blockchain {
         Blockchain {
             transactions: Vec::new(),
             chain: Vec::new(),
-            difficulty: 3,
+            difficulty: 2,
         }
     }
     /// Check if the block is valid

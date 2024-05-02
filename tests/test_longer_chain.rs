@@ -8,9 +8,10 @@ use std::time::Duration;
 use tonic::Request;
 
 #[tokio::test]
-async fn test_sync_blockchain() {
+async fn test_longer_chain() {
     let mut tasks = Vec::new();
 
+    // start the first two nodes
     let nodes = vec![50000, 50001, 50002];
     tasks.push(tokio::spawn(start(nodes[0], None)));
     tokio::time::sleep(Duration::from_millis(200)).await;
@@ -69,6 +70,7 @@ async fn test_sync_blockchain() {
         .transaction
         .unwrap();
 
+    // send a transaction to the nodes, so that they can start mining
     grpc_client
         .update_client_transaction(Request::new(UpdateTransactionRequest {
             transactions: vec![tx1.clone()],
@@ -76,10 +78,11 @@ async fn test_sync_blockchain() {
         .await
         .unwrap();
 
-    // start third node after the transaction is sent
+    // start third node after the first two nodes have start mining
     tasks.push(tokio::spawn(start(nodes[2], Some(nodes[1]))));
     tokio::time::sleep(Duration::from_millis(200)).await;
 
+    // send two more transactions to the nodes, the third node should start mining block with tx2 and tx3
     grpc_client
         .update_client_transaction(Request::new(UpdateTransactionRequest {
             transactions: vec![tx2.clone(), tx3.clone()],
@@ -90,6 +93,7 @@ async fn test_sync_blockchain() {
     // wait for the transaction to be sent to the blockchain
     tokio::time::sleep(Duration::from_secs(5)).await;
 
+    // eventually the third node should have a chain with 2 blocks
     for node in &nodes {
         let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", node))
             .await

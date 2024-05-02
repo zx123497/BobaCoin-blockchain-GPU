@@ -22,6 +22,7 @@ message JoinNetworkRequest {
 message JoinNetworkResponse {
     repeated NodeInfo nodes = 1;
     repeated Block chain = 2;
+    repeated Transaction transactions = 3;
 }
 
 message NodeInfo {
@@ -68,9 +69,6 @@ message UpdateTransactionResponse {
     bool success = 1;
 }
 
-
-
-
 // only for testing
 message GetBlockchainRequest {
 }
@@ -105,3 +103,4 @@ message GetTransactionListRequest {
 message GetTransactionListResponse {
     repeated Transaction transactions = 1;
 }
+

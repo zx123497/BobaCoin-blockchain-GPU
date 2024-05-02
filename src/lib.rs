@@ -44,6 +44,7 @@ pub async fn start(port: u16, peer_port: Option<u16>) {
         let peer_list = res.nodes;
         node.peers.lock().await.extend(peer_list.clone());
         node.blockchain.lock().await.chain = res.chain;
+        node.blockchain.lock().await.transactions = res.transactions;
 
         // broadcast the new node to the rest of the network
         let mut broadcast = JoinSet::new();
