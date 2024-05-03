@@ -132,7 +132,6 @@ impl Transaction {
         let mut verifier = Verifier::new(MessageDigest::sha256(), &keypair)?;
         verifier.update(self.hash.as_bytes())?;
         let signature = hex::decode(&self.signature).unwrap();
-        println!("Passed ? {:?}", verifier.verify(&signature));
         verifier.verify(&signature)
     }
 }
