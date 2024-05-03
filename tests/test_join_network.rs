@@ -5,7 +5,7 @@ use std::time::Duration;
 use tonic::Request;
 
 #[tokio::test]
-async fn test_join_network() {
+async fn test_join_network_10_percents() {
     let mut tasks = Vec::new();
 
     let nodes = vec![50000, 50001, 50002];

@@ -8,7 +8,7 @@ use std::time::Duration;
 use tonic::Request;
 use uuid::Uuid;
 #[tokio::test]
-async fn test_mine_block() {
+async fn test_fork_30_percents() {
     let mut tasks = Vec::new();
 
     // start two nodes without connecting them, so they will have different blockchains
@@ -89,11 +89,7 @@ async fn test_mine_block() {
         .into_inner()
         .chain;
 
-    println!("{:?}", bc1);
-    println!("{:?}", bc2);
-
     // start another two nodes, and update different chains to them, so they will have forked blockchains
-
     let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", nodes[2]))
         .await
         .expect("Failed to connect to node");

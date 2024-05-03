@@ -9,7 +9,7 @@ use tonic::Request;
 use uuid::Uuid;
 
 #[tokio::test]
-async fn test_longer_chain() {
+async fn test_longer_chain_20_percents() {
     let mut tasks = Vec::new();
 
     // start the first two nodes

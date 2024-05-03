@@ -9,7 +9,7 @@ use tonic::Request;
 use uuid::Uuid;
 
 #[tokio::test]
-async fn test_submit_transaction() {
+async fn test_submit_transaction_10_percents() {
     let mut tasks = Vec::new();
 
     let nodes = vec![50000, 50001, 50002];

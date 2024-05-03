@@ -9,7 +9,7 @@ use std::time::Duration;
 use tonic::Request;
 use uuid::Uuid;
 #[tokio::test]
-async fn test_invalid_block() {
+async fn test_invalid_block_15_percents() {
     let mut tasks = Vec::new();
 
     let nodes = vec![50000, 50001, 50002];
