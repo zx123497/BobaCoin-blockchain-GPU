@@ -6,6 +6,7 @@ use blockchain::node::UpdateTransactionRequest;
 use blockchain::start;
 use std::time::Duration;
 use tonic::Request;
+use uuid::Uuid;
 
 #[tokio::test]
 async fn test_submit_transaction() {
@@ -26,7 +27,7 @@ async fn test_submit_transaction() {
         .await
         .expect("Failed to connect to node");
     let res = grpc_client.generate_transaction(Request::new(GenerateTransactionRequest {
-        id: 1,
+        id: Uuid::new_v4().to_string(),
         sender: client.public_key.clone(),
         private_key: client.private_key.clone(),
         receiver: "receiver".to_string(),

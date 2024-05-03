@@ -6,6 +6,7 @@ use blockchain::node::UpdateTransactionRequest;
 use blockchain::start;
 use std::time::Duration;
 use tonic::Request;
+use uuid::Uuid;
 
 #[tokio::test]
 async fn test_longer_chain() {
@@ -27,7 +28,7 @@ async fn test_longer_chain() {
         .expect("Failed to connect to node");
     let tx1 = grpc_client
         .generate_transaction(Request::new(GenerateTransactionRequest {
-            id: 1,
+            id: Uuid::new_v4().to_string(),
             sender: client.public_key.clone(),
             private_key: client.private_key.clone(),
             receiver: "receiver1".to_string(),
@@ -42,7 +43,7 @@ async fn test_longer_chain() {
 
     let tx2 = grpc_client
         .generate_transaction(Request::new(GenerateTransactionRequest {
-            id: 2,
+            id: Uuid::new_v4().to_string(),
             sender: client.public_key.clone(),
             private_key: client.private_key.clone(),
             receiver: "receiver2".to_string(),
@@ -57,7 +58,7 @@ async fn test_longer_chain() {
 
     let tx3 = grpc_client
         .generate_transaction(Request::new(GenerateTransactionRequest {
-            id: 3,
+            id: Uuid::new_v4().to_string(),
             sender: client.public_key.clone(),
             private_key: client.private_key.clone(),
             receiver: "receiver3".to_string(),

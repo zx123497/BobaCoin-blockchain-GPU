@@ -7,9 +7,9 @@ use blockchain::node::UpdateTransactionRequest;
 use blockchain::start;
 use std::time::Duration;
 use tonic::Request;
-
+use uuid::Uuid;
 #[tokio::test]
-async fn test_mine_block() {
+async fn test_invalid_block() {
     let mut tasks = Vec::new();
 
     let nodes = vec![50000, 50001, 50002];
@@ -27,7 +27,7 @@ async fn test_mine_block() {
         .await
         .expect("Failed to connect to node");
     let res = grpc_client.generate_transaction(Request::new(GenerateTransactionRequest {
-        id: 1,
+        id: Uuid::new_v4().to_string(),
         sender: client.public_key.clone(),
         private_key: client.private_key.clone(),
         receiver: "receiver".to_string(),
@@ -60,28 +60,31 @@ async fn test_mine_block() {
     // create a bad block
     let mut bad_block = blockchain[0].clone();
     bad_block.id = 1;
+    bad_block.prev_hash = bad_block.hash.clone();
     bad_block.transactions[0].amount = 1000;
 
     let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", nodes[1]))
         .await
         .expect("Failed to connect to node");
-    grpc_client
+
+    assert!(grpc_client
         .update_blockchain(Request::new(UpdateBlockchainRequest {
             blocks: vec![bad_block.clone()],
         }))
         .await
-        .unwrap();
+        .is_err());
 
     let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", nodes[2]))
         .await
         .expect("Failed to connect to node");
-    grpc_client
+    assert!(grpc_client
         .update_blockchain(Request::new(UpdateBlockchainRequest {
             blocks: vec![bad_block.clone()],
         }))
         .await
-        .unwrap();
+        .is_err());
 
+    // expect the other nodes to ignore the bad block
     for node in &nodes {
         let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", node))
             .await

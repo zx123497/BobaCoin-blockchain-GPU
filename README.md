@@ -39,7 +39,3 @@ brew install protobuf
 ```
 make test
 ```
-
-## TODO
-1. Send new blocks instead of entire chain after mining a new block
-2. Use actual transactions instead of placeholders

@@ -50,51 +50,50 @@ impl NodeMessage for Network {
     ) -> Result<Response<UpdateBlockchainResponse>, Status> {
         let req = request.into_inner();
         let blocks = req.blocks;
-        let mut current_bc = self.node.blockchain.lock().await;
+        let current_bc = self.node.blockchain.lock().await;
+        let mut chain = current_bc.chain.clone();
+        drop(current_bc);
+
         if blocks.is_empty() {
             println!("[Warning] Received blocks is empty");
             return Ok(Response::new(UpdateBlockchainResponse {
                 success: false,
-                chain_length: current_bc.chain.len() as u32,
+                chain_length: chain.len() as u32,
             }));
         }
-        if blocks[0].id as usize > current_bc.chain.len() {
+        if blocks[0].id as usize > chain.len() {
             // should return false to get updated blockchain
             println!("[Warning] Need previous blocks to update blockchain, current blockchain length: {}",
-                     current_bc.chain.len());
+                     chain.len());
             return Ok(Response::new(UpdateBlockchainResponse {
                 success: false,
-                chain_length: current_bc.chain.len() as u32,
+                chain_length: chain.len() as u32,
             }));
         } else {
             // check if the received blockchain is longer than the current blockchain
-            if blocks.len() + (blocks[0].id as usize) <= current_bc.chain.len() {
-                println!("[Warning] Received blockchain is shorter than current blockchain");
-                return Ok(Response::new(UpdateBlockchainResponse {
-                    success: false,
-                    chain_length: current_bc.chain.len() as u32,
-                }));
-            }
-            if blocks[0].id != 0 {
-                let last_block = current_bc.chain[blocks[0].id as usize - 1].clone();
-                if last_block.hash != blocks[0].prev_hash {
-                    println!("[Warning] Previous hash does not match");
-                    return Ok(Response::new(UpdateBlockchainResponse {
-                        success: false,
-                        chain_length: current_bc.chain.len() as u32,
-                    }));
-                }
+            if (blocks.last().unwrap().id as usize) < chain.len() {
+                println!("[Warning] Received blockchain is shorter than current blockchain",);
+                return Err(Status::invalid_argument(
+                    "Received blockchain is shorter than current blockchain",
+                ));
             }
 
-            let mut prev_hash = blocks[0].hash.clone();
+            // truncate the current blockchain and add the received blocks
+            chain.truncate(blocks[0].id as usize);
+            chain.extend(blocks.clone());
+
+            let mut prev_hash = String::new();
+            if blocks[0].id != 0 {
+                prev_hash = chain[blocks[0].id as usize - 1].hash.clone();
+            }
             let mut encluded_transactions = Vec::<Transaction>::new();
             // check if the received blockchain is valid
-            for (i, block) in blocks.iter().enumerate() {
-                if i != 0 && block.prev_hash != prev_hash {
+            for block in blocks {
+                if block.prev_hash != prev_hash {
                     println!("[Warning] Previous hash does not match in block ");
                     return Ok(Response::new(UpdateBlockchainResponse {
                         success: false,
-                        chain_length: current_bc.chain.len() as u32,
+                        chain_length: 0,
                     }));
                 }
 
@@ -102,17 +101,17 @@ impl NodeMessage for Network {
 
                 if !block.check_block_validity() {
                     println!("[Warning] Invalid block in received blockchain");
-                    return Ok(Response::new(UpdateBlockchainResponse {
-                        success: false,
-                        chain_length: current_bc.chain.len() as u32,
-                    }));
+                    return Err(Status::invalid_argument(
+                        "Invalid block in received blockchain",
+                    ));
                 }
 
                 encluded_transactions.extend(block.transactions.clone());
             }
 
             // if the received blockchain is valid, then update the current blockchain
-            current_bc.chain.extend(blocks.clone());
+            let mut current_bc = self.node.blockchain.lock().await;
+            current_bc.chain = chain;
 
             // remove the transactions that are included in the new blockchain
             current_bc

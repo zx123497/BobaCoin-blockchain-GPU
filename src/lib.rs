@@ -90,11 +90,11 @@ pub async fn start(port: u16, peer_port: Option<u16>) {
 pub async fn handle_transactions(node: Arc<Node>, port: u32, mut rx: mpsc::Receiver<bool>) {
     loop {
         let blockchain = node.blockchain.lock().await;
-        let mut chain = blockchain.chain.clone();
         let difficulty = blockchain.difficulty;
-        let mut last_block = chain.last().cloned();
-        if last_block.is_none() {
-            last_block = Some(Block {
+        let last_block = blockchain
+            .chain
+            .last()
+            .unwrap_or(&Block {
                 id: -1,
                 timestamp: 0,
                 nonce: 0,
@@ -102,8 +102,8 @@ pub async fn handle_transactions(node: Arc<Node>, port: u32, mut rx: mpsc::Recei
                 hash: "".to_string(),
                 transactions: vec![],
                 difficulty: difficulty,
-            });
-        }
+            })
+            .clone();
 
         let transactions = blockchain.transactions.clone();
         drop(blockchain);
@@ -112,74 +112,49 @@ pub async fn handle_transactions(node: Arc<Node>, port: u32, mut rx: mpsc::Recei
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
             continue;
         }
-        match mine_new_block(
-            &last_block.unwrap(),
-            transactions.clone(),
-            difficulty,
-            &mut rx,
-        )
-        .await
-        {
+        match mine_new_block(&last_block, transactions.clone(), difficulty, &mut rx).await {
             Ok(block) => {
                 // broadcast the new block to the rest of the network
-                chain.push(block.clone());
                 let mut blockchain = node.blockchain.lock().await;
-                blockchain.chain = chain;
+                blockchain.chain.push(block.clone());
 
                 for node in node.peers.lock().await.iter() {
                     if node.port == port {
                         continue;
                     }
+                    let mut start_idx = blockchain.chain.len() - 1;
                     let mut client =
                         NodeMessageClient::connect(format!("http://[::1]:{}", node.port))
                             .await
                             .unwrap();
-                    match client
-                        .update_blockchain(Request::new(UpdateBlockchainRequest {
-                            blocks: vec![block.clone()],
-                        }))
-                        .await
-                    {
-                        Ok(res) => {
-                            let response = res.into_inner();
-                            if !response.success {
-                                if response.chain_length >= blockchain.chain.len() as u32 {
-                                    continue;
+                    loop {
+                        match client
+                            .update_blockchain(Request::new(UpdateBlockchainRequest {
+                                blocks: blockchain.chain[start_idx..].to_vec(),
+                            }))
+                            .await
+                        {
+                            Ok(res) => {
+                                let response = res.into_inner();
+                                if response.success {
+                                    break;
+                                } else {
+                                    start_idx = response.chain_length as usize;
                                 }
-
-                                println!(
-                                    "[Warning] Failed to update blockchain on node: {}, retrying...",
-                                    node.port
-                                );
-
-                                let blocks_to_update =
-                                    blockchain.chain[response.chain_length as usize..].to_vec();
-
-                                println!(
-                                    "[INFO] Sending missing blocks to node: {}, blocks: {:?}",
-                                    node.port, blocks_to_update
-                                );
-
-                                client
-                                    .update_blockchain(Request::new(UpdateBlockchainRequest {
-                                        blocks: blocks_to_update,
-                                    }))
-                                    .await
-                                    .unwrap();
                             }
-                        }
-                        Err(error) => {
-                            println!(
-                                "[Warning] Failed to update blockchain on node: {}, {:?}",
-                                node.port, error
-                            );
+                            Err(error) => {
+                                eprintln!(
+                                    "[Warning] Failed to update blockchain on node: {}, {:?}",
+                                    node.port, error
+                                );
+                                break;
+                            }
                         }
                     }
                 }
-                for transaction in transactions {
-                    blockchain.transactions.retain(|x| x != &transaction);
-                }
-                drop(blockchain);
+                transactions.iter().for_each(|transaction| {
+                    blockchain.transactions.retain(|x| x != transaction);
+                });
             }
             Err(error) => {
                 println!("[Warning] Failed to mine new block: {:?}", error);

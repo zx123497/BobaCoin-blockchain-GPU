@@ -42,7 +42,7 @@ message Block {
 }
 
 message Transaction {
-    int32 id = 1;
+    string id = 1;
     string hash = 2;
     string sender = 3;
     string receiver = 4;
@@ -78,7 +78,7 @@ message GetBlockchainResponse {
 }
 
 message GenerateTransactionRequest {
-    int32 id = 1;
+    string id = 1;
     string sender = 2;
     string privateKey = 3;
     string receiver = 4;
