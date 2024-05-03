@@ -89,12 +89,24 @@ To start a client, interact with specified worker node, should start worker node
 cargo r <port> -c
 ```
 
+
 > #### Commands for Clients
 > 
 >`new` -- Create a new transaction and submit to the network.
 >
->`exit`-- Exit the program.
+>`exit` -- Exit the program.
 >
+
+For example to, run three worker nodes in `50000`, `50001`, `50002` port, and a client interact with one of the nodes.
+```zsh
+# run workers
+cargo r 50000
+cargo r 50001 -p 50000
+cargo r 50002 -p 50001
+# run client
+cargo r 50000 -c
+```
+
 
 
 ## Description of tests and how to run them
@@ -124,8 +136,23 @@ It will start two worker nodes first and send a transaction to one of the nodes.
 ### 6. Test fork (30%)
 The test starts with two nodes that are not connected to each other. it will send different transactions to each of the nodes. The two nodes will create two different blockchains, representing a fork. Then, it will start two more worker nodes that know each other and update each of the new worker nodes with the two blockchains. Finally, it will send a new transaction to the network, expecting that the two nodes will eventually have the same blockchain (resolve the fork).
 
-## 
-![Untitled](https://github.com/cmu14736/s24-lab4-goat/assets/143555875/72665bc0-ee5d-46e4-a163-6ec0943cf269)
+## System Design
+### Overall
+![System Structure](https://github.com/cmu14736/s24-lab4-goat/assets/143555875/72665bc0-ee5d-46e4-a163-6ec0943cf269)
+### Details
+#### Worker Nodes
+- A worker node can join a blockchain network with or without specifying a peer node. If the node joins the network without specifying a peer, it becomes the super (first) node of the network. Otherwise, it retrieves a peer list from the specified peer node and attempts to contact the nodes in the list. The node also acquires the blockchain and the transaction list from the transaction pool of its peer node. When a client sends a new transaction to a worker node, the worker node verifies the transaction, sends it to all peers in the network, and updates the transaction pool. Worker nodes continuously monitor the transaction pool; if any pending transactions exist, a node will start mining a new block containing all the transactions in the pool. If a worker node successfully mines a block, it will send the new block to other nodes in the network. Other nodes then check the validity of the new block, stop their current mining processes, and update the blockchain. 
+  
+- If the received new block id is larger than current blockchain length, but the previous hash string does not match to the hash of the previous block, the worker node will consider this situation a fork. To manage, it will request an entire blockchain from a peer node. If the new blockchain is longer and is valid, the worker node will replace the old blockchain with the new chain.
+
+#### Client Nodes
+- A client node will create an RSA keypair for signing the transaction. It will also prepare a valid transaction and send it to the blockchain network. It will sign the transaction hash with its private key, and put the signature and also its public key in the transaction. The worker node can verify the transaction by verifying the signature with the provided public key.
+
+### Future Improvement
+1. We can add some security mechanisms, like UTXO model, to prevent double spending attacks.
+2. Instead of sending entire blockchain to handle forks, it's better to send only required blocks. Since in the real-world blockchain, the size of entire chain can be really large.
+
+
 
 
 
