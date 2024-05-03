@@ -5,7 +5,6 @@ As indicated in the lab writeup, you have an opportunity to design and implement
 
 ## Description of project topic, goals, and tasks
 
-...
 
 ## Dependencies to run this code
 
@@ -32,10 +31,21 @@ Assuming [Homebrew](https://brew.sh/) is already installed. (If not, see instruc
 brew install protobuf
 ```
 
+## Usage
+To start a worker node without a peer node (The first node in a blockchain network)
+```zsh
+cargo r <port>
+```
+
+Start a worker node with a specified peer
+```zsh
+cargo r <port> -p <peer-port>
+```
+
+To start a client, interact with specified worker node
+```zsh
+cargo r <port> -c
+```
+
 ## Description of tests and how to run them
 
-1. Test for...
-
-```
-make test
-```

@@ -1,3 +1,9 @@
+//! ## Blockchain module
+//! This module contains the implementation of the blockchain and its components
+//! The blockchain is composed of blocks, and each block contains a list of transactions
+//! The blockchain is used to store the transactions and blocks, and to validate the blocks
+//! The blocks are mined by the nodes, and the transactions are added to the blocks
+//! The blocks are mined by solving a cryptographic puzzle, and the first node to solve the puzzle gets to add the block to the blockchain
 use crate::node::{Block, Transaction};
 use openssl::{hash::MessageDigest, pkey::PKey, rsa::Rsa, sign::Verifier};
 use std::time::SystemTime;
@@ -46,6 +52,7 @@ impl Blockchain {
 }
 
 impl Block {
+    /// Compute the hash of the block
     pub fn compute_hash(&self, nonce: i32) -> String {
         let mut tx_hashes = "".to_string();
         for (i, transaction) in self.transactions.iter().enumerate() {
@@ -88,6 +95,7 @@ impl Block {
 }
 
 impl Transaction {
+    /// Compute the hash of the transaction
     pub fn compute_hash(&self) -> String {
         let data = format!(
             "{}|{}|{}|{}|{}",
@@ -155,6 +163,7 @@ fn check_hash_validity(hash: &String, difficulty: i32) -> bool {
     count >= difficulty
 }
 
+/// Mine a new block
 pub async fn mine_new_block(
     last_block: &Block,
     transactions: Vec<Transaction>,
