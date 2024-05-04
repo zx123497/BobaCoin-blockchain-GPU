@@ -137,7 +137,7 @@ It will start two worker nodes first and send a transaction to one of the nodes.
 The test starts with two nodes that are not connected to each other. it will send different transactions to each of the nodes. The two nodes will create two different blockchains, representing a fork. Then, it will start two more worker nodes that know each other and update each of the new worker nodes with the two blockchains. Finally, it will send a new transaction to the network, expecting that the two nodes will eventually have the same blockchain (resolve the fork).
 
 ## System Design
-### Overall
+### Overview
 ![System Structure](https://github.com/cmu14736/s24-lab4-goat/assets/143555875/72665bc0-ee5d-46e4-a163-6ec0943cf269)
 ### Details
 #### Worker Nodes
