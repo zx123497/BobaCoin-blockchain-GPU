@@ -1,3 +1,4 @@
+/// This is the main entry point for the blockchain application
 use blockchain::models::client::Client;
 use blockchain::start;
 use clap::Parser;

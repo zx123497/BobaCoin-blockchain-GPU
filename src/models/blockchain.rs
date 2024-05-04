@@ -132,7 +132,7 @@ impl Transaction {
             Err(_) => false,
         }
     }
-
+    /// Verify the signature of the transaction
     fn verify_signature(&self) -> Result<bool, openssl::error::ErrorStack> {
         let public_key = hex::decode(&self.sender).unwrap();
         let pub_key = Rsa::public_key_from_pem(public_key.as_slice())?;

@@ -18,7 +18,6 @@ async fn test_longer_chain_20_percents() {
     tokio::time::sleep(Duration::from_millis(200)).await;
     tasks.push(tokio::spawn(start(nodes[1], Some(nodes[0]))));
     tokio::time::sleep(Duration::from_millis(200)).await;
-
     // Wait for the nodes to start
 
     // Create a client and create public key and private key

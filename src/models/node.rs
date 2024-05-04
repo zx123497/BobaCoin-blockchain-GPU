@@ -1,3 +1,7 @@
+//! Node model
+//! Node model is used to represent a node in the network
+//! The node has a list of peers, a blockchain, an ip, a port, and an id
+//! The node is used to store the state of the node in the network
 use crate::models::blockchain::Blockchain;
 use crate::node::NodeInfo;
 use tokio::sync::Mutex;

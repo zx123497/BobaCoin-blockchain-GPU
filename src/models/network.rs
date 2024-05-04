@@ -1,3 +1,5 @@
+//! This module contains the implementation of the Network struct
+//! This is for all the gRPC service implementations
 use crate::models::node::Node;
 
 use crate::node::{
@@ -191,6 +193,7 @@ impl NodeMessage for Network {
         Ok(Response::new(UpdateTransactionResponse { success: true }))
     }
 
+    /// Return the current blockchain to the client
     async fn get_blockchain(
         &self,
         _: Request<GetBlockchainRequest>,
@@ -200,7 +203,7 @@ impl NodeMessage for Network {
             chain: blockchain.chain.clone(),
         }))
     }
-
+    /// Generate a transaction and return it to the client
     async fn generate_transaction(
         &self,
         request: Request<GenerateTransactionRequest>,
@@ -232,7 +235,7 @@ impl NodeMessage for Network {
             transaction: Some(transaction),
         }))
     }
-
+    /// Return the list of peers to the client
     async fn get_peer_list(
         &self,
         _: Request<GetPeerListRequest>,
@@ -242,7 +245,7 @@ impl NodeMessage for Network {
             nodes: (*peers).clone(),
         }))
     }
-
+    /// Return the list of transactions to the client
     async fn get_transaction_list(
         &self,
         _: Request<GetTransactionListRequest>,

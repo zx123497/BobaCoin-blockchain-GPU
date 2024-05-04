@@ -24,8 +24,6 @@ async fn test_fork_30_percents() {
 
     println!("{:?}", nodes);
 
-    // Wait for the nodes to start
-
     // Create a client and create public key and private key
     let client = common::Client::new();
     let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", nodes[0]))

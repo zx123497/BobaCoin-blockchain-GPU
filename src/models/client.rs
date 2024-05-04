@@ -1,3 +1,7 @@
+//! Client module
+//! Contains the client struct and its implementation
+//! The client struct is used to interact with the blockchain network
+//! The client can send transactions to the network
 use crate::node::UpdateTransactionRequest;
 use crate::node::{node_message_client::NodeMessageClient, Transaction};
 use openssl::hash::MessageDigest;
@@ -22,7 +26,7 @@ impl Client {
             port: port,
         }
     }
-
+    /// Start the client
     pub async fn start(self) {
         // transaction input stdin
         let mut input = String::new();
@@ -69,7 +73,7 @@ impl Client {
             }
         }
     }
-
+    /// Generate a transaction
     fn generate_transaction(&self, receiver: String, amount: i32, fee: i32) -> Transaction {
         let mut transaction = Transaction {
             id: Uuid::new_v4().to_string(),
@@ -95,7 +99,7 @@ impl Client {
         transaction
     }
 }
-
+/// Generate a keypair
 fn generate_keypair() -> (String, String) {
     let rsa = Rsa::generate(2048).unwrap();
     let public_key = hex::encode(rsa.public_key_to_pem().unwrap());

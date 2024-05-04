@@ -1,3 +1,6 @@
+//! This file contains the main logic of the node server
+//! The node server is responsible for handling incoming transactions, mining new blocks, and broadcasting the new blocks to the rest of the network
+//! The node server is also responsible for introducing new nodes to the network
 pub mod models;
 pub mod node {
     tonic::include_proto!("node");
@@ -12,6 +15,7 @@ use std::sync::Arc;
 use tokio::{sync::mpsc, task::JoinSet};
 use tonic::{transport::Server, Request};
 
+/// Start the node server
 pub async fn start(port: u16, peer_port: Option<u16>) {
     let port: u32 = port as u32;
     let (tx, rx) = mpsc::channel::<bool>(1);
@@ -86,7 +90,7 @@ pub async fn start(port: u16, peer_port: Option<u16>) {
         .await
         .unwrap();
 }
-
+/// Handle incoming transactions
 pub async fn handle_transactions(node: Arc<Node>, port: u32, mut rx: mpsc::Receiver<bool>) {
     loop {
         let blockchain = node.blockchain.lock().await;
