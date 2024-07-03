@@ -1,7 +1,17 @@
 # Lab 4: Choose-your-Own Distributed System
 
 As indicated in the lab writeup, you have an opportunity to design and implement your own distributed system, service, or application.  There is a lot of flexibility, so we aren't providing you with starter code.  This nearly empty repo should be your starting point, and you can build off any of your previous lab outcomes.  As usual, please use this repo for your project work, so the course staff can help you along the way
+ 
+### Documentation
 
+Compile the document by running `make docs`. Document size is large, does not fit in GradeScope
+submission.
+
+Github link: https://github.com/cmu14736/s24-lab4-goat
+
+see https://piazza.com/class/lqzuwhbdbrq5b1/post/441
+
+Check `target/doc/` for all documentations.
 
 ## Description of project topic, goals, and tasks
 
@@ -149,8 +159,9 @@ The test starts with two nodes that are not connected to each other. it will sen
 - A client node will create an RSA keypair for signing the transaction. It will also prepare a valid transaction and send it to the blockchain network. It will sign the transaction hash with its private key, and put the signature and also its public key in the transaction. The worker node can verify the transaction by verifying the signature with the provided public key.
 
 ### Future Improvement
-1. We can add some security mechanisms, like UTXO model, to prevent double spending attacks.
-2. Instead of sending entire blockchain to handle forks, it's better to send only required blocks. Since in the real-world blockchain, the size of entire chain can be really large.
+1. Improve mining task using GPU parallel computing (e.g. CUDA), replacing CPU computing.
+2. We can add some security mechanisms, like UTXO model, to prevent double spending attacks.
+3. Instead of sending entire blockchain to handle forks, it's better to send only required blocks. Since in the real-world blockchain, the size of entire chain can be really large.
 
 
 

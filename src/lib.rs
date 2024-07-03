@@ -33,7 +33,7 @@ pub async fn start(port: u16, peer_port: Option<u16>) {
     // if the node is not the master node, then should introduce itself to every node in the network
     if let Some(peer) = peer_port {
         // connect to the peer node
-        let mut client = NodeMessageClient::connect(format!("http://[::1]:{}", peer))
+        let mut client = NodeMessageClient::connect(format!("http://127.0.0.1:{}", peer))
             .await
             .expect("Failed to connect to peer node");
         let res = client
@@ -79,7 +79,7 @@ pub async fn start(port: u16, peer_port: Option<u16>) {
     }
 
     // start a thread to handle incoming transactions, if any transaction is received, compute the hash and add it to the blockchain
-    let addr = format!("[::1]:{}", port).parse().unwrap();
+    let addr = format!("127.0.0.1:{}", port).parse().unwrap();
 
     tokio::spawn(handle_transactions(node, port, rx));
 
@@ -128,7 +128,7 @@ pub async fn handle_transactions(node: Arc<Node>, port: u32, mut rx: mpsc::Recei
                     }
                     let mut start_idx = blockchain.chain.len() - 1;
                     let mut client =
-                        NodeMessageClient::connect(format!("http://[::1]:{}", node.port))
+                        NodeMessageClient::connect(format!("http://127.0.0.1:{}", node.port))
                             .await
                             .unwrap();
                     loop {

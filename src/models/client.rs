@@ -52,7 +52,7 @@ impl Client {
                     let transaction = self.generate_transaction(receiver.to_string(), amount, fee);
 
                     let mut grpc_client =
-                        NodeMessageClient::connect(format!("http://[::1]:{}", self.port))
+                        NodeMessageClient::connect(format!("http://127.0.0.1:{}", self.port))
                             .await
                             .expect("Failed to connect to node");
 

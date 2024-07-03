@@ -22,7 +22,7 @@ async fn test_longer_chain_20_percents() {
 
     // Create a client and create public key and private key
     let client = common::Client::new();
-    let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", nodes[0]))
+    let mut grpc_client = NodeMessageClient::connect(format!("http://127.0.0.1:{}", nodes[0]))
         .await
         .expect("Failed to connect to node");
     let tx1 = grpc_client
@@ -95,7 +95,7 @@ async fn test_longer_chain_20_percents() {
 
     // eventually the third node should have a chain with 2 blocks
     for node in &nodes {
-        let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", node))
+        let mut grpc_client = NodeMessageClient::connect(format!("http://127.0.0.1:{}", node))
             .await
             .expect("Failed to connect to node");
         let res = grpc_client

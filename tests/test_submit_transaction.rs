@@ -23,7 +23,7 @@ async fn test_submit_transaction_10_percents() {
 
     // Create a client and create public key and private key
     let client = common::Client::new();
-    let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", nodes[0]))
+    let mut grpc_client = NodeMessageClient::connect(format!("http://127.0.0.1:{}", nodes[0]))
         .await
         .expect("Failed to connect to node");
     let res = grpc_client.generate_transaction(Request::new(GenerateTransactionRequest {
@@ -52,7 +52,7 @@ async fn test_submit_transaction_10_percents() {
 
     // check that only the valid transaction is in every node
     for node in &nodes {
-        let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", node))
+        let mut grpc_client = NodeMessageClient::connect(format!("http://127.0.0.1:{}", node))
             .await
             .expect("Failed to connect to node");
         let res = grpc_client

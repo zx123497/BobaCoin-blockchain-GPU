@@ -26,7 +26,7 @@ async fn test_fork_30_percents() {
 
     // Create a client and create public key and private key
     let client = common::Client::new();
-    let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", nodes[0]))
+    let mut grpc_client = NodeMessageClient::connect(format!("http://127.0.0.1:{}", nodes[0]))
         .await
         .expect("Failed to connect to node");
     let res = grpc_client.generate_transaction(Request::new(GenerateTransactionRequest {
@@ -56,7 +56,7 @@ async fn test_fork_30_percents() {
         .await
         .unwrap();
 
-    let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", nodes[1]))
+    let mut grpc_client = NodeMessageClient::connect(format!("http://127.0.0.1:{}", nodes[1]))
         .await
         .expect("Failed to connect to node");
 
@@ -88,7 +88,7 @@ async fn test_fork_30_percents() {
         .chain;
 
     // start another two nodes, and update different chains to them, so they will have forked blockchains
-    let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", nodes[2]))
+    let mut grpc_client = NodeMessageClient::connect(format!("http://127.0.0.1:{}", nodes[2]))
         .await
         .expect("Failed to connect to node");
 
@@ -99,7 +99,7 @@ async fn test_fork_30_percents() {
         .await
         .unwrap();
 
-    let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", nodes[3]))
+    let mut grpc_client = NodeMessageClient::connect(format!("http://127.0.0.1:{}", nodes[3]))
         .await
         .expect("Failed to connect to node");
 
@@ -139,7 +139,7 @@ async fn test_fork_30_percents() {
         .into_inner()
         .chain;
 
-    let bc4 = NodeMessageClient::connect(format!("http://[::1]:{}", nodes[2]))
+    let bc4 = NodeMessageClient::connect(format!("http://127.0.0.1:{}", nodes[2]))
         .await
         .expect("Failed to connect to node")
         .get_blockchain(Request::new(GetBlockchainRequest {}))

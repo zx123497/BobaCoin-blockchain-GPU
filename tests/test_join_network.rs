@@ -18,7 +18,7 @@ async fn test_join_network_10_percents() {
     // Wait for the nodes to start
 
     for node in &nodes {
-        let mut client = NodeMessageClient::connect(format!("http://[::1]:{}", node))
+        let mut client = NodeMessageClient::connect(format!("http://127.0.0.1:{}", node))
             .await
             .expect("Failed to connect to node");
         let res = client

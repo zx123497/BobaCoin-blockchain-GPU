@@ -23,7 +23,7 @@ async fn test_invalid_block_15_percents() {
 
     // Create a client and create public key and private key
     let client = common::Client::new();
-    let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", nodes[0]))
+    let mut grpc_client = NodeMessageClient::connect(format!("http://127.0.0.1:{}", nodes[0]))
         .await
         .expect("Failed to connect to node");
     let res = grpc_client.generate_transaction(Request::new(GenerateTransactionRequest {
@@ -47,7 +47,7 @@ async fn test_invalid_block_15_percents() {
     tokio::time::sleep(Duration::from_secs(5)).await;
 
     // simulate node 0 being a bad node, and trying to spread a bad block to the network
-    let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", nodes[0]))
+    let mut grpc_client = NodeMessageClient::connect(format!("http://127.0.0.1:{}", nodes[0]))
         .await
         .expect("Failed to connect to node");
 
@@ -63,7 +63,7 @@ async fn test_invalid_block_15_percents() {
     bad_block.prev_hash = bad_block.hash.clone();
     bad_block.transactions[0].amount = 1000;
 
-    let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", nodes[1]))
+    let mut grpc_client = NodeMessageClient::connect(format!("http://127.0.0.1:{}", nodes[1]))
         .await
         .expect("Failed to connect to node");
 
@@ -74,7 +74,7 @@ async fn test_invalid_block_15_percents() {
         .await
         .is_err());
 
-    let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", nodes[2]))
+    let mut grpc_client = NodeMessageClient::connect(format!("http://127.0.0.1:{}", nodes[2]))
         .await
         .expect("Failed to connect to node");
     assert!(grpc_client
@@ -86,7 +86,7 @@ async fn test_invalid_block_15_percents() {
 
     // expect the other nodes to ignore the bad block
     for node in &nodes {
-        let mut grpc_client = NodeMessageClient::connect(format!("http://[::1]:{}", node))
+        let mut grpc_client = NodeMessageClient::connect(format!("http://127.0.0.1:{}", node))
             .await
             .expect("Failed to connect to node");
         let res = grpc_client

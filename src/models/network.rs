@@ -180,7 +180,7 @@ impl NodeMessage for Network {
             if node.port == self.node.port {
                 continue;
             }
-            let mut client = NodeMessageClient::connect(format!("http://[::1]:{}", node.port))
+            let mut client = NodeMessageClient::connect(format!("http://127.0.0.1:{}", node.port))
                 .await
                 .unwrap();
             client
