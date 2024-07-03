@@ -1,22 +1,4 @@
-# Lab 4: Choose-your-Own Distributed System
-
-As indicated in the lab writeup, you have an opportunity to design and implement your own distributed system, service, or application.  There is a lot of flexibility, so we aren't providing you with starter code.  This nearly empty repo should be your starting point, and you can build off any of your previous lab outcomes.  As usual, please use this repo for your project work, so the course staff can help you along the way
- 
-### Documentation
-
-Compile the document by running `make docs`. Document size is large, does not fit in GradeScope
-submission.
-
-Github link: https://github.com/cmu14736/s24-lab4-goat
-
-see https://piazza.com/class/lqzuwhbdbrq5b1/post/441
-
-Check `target/doc/` for all documentations.
-
-## Description of project topic, goals, and tasks
-
-### Project Topic
-Proof of Work (PoW) Blockchain Consensus
+# Proof of Work (PoW) Blockchain Consensus
 
 ### Goals
 In this lab, we will build a peer-to-peer blockchain system based on the Proof of Work consensus. The system allows us to start multiple worker nodes for mining blocks and client nodes for sending transactions to the blockchain. The blockchain system will attempt to mine blocks containing the requested transactions. The system ensures that all worker nodes eventually have the most up-to-date and longest blockchain.
