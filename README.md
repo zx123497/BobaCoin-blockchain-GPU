@@ -111,39 +111,41 @@ or
 ```
 make final
 ```
-### 1. Test join network (10%)
-   The test will start three worker nodes, expecting three of them will know each other.
-### 2. Test submit transaction (10%)
-   The test will start three worker nodes and send a transaction to one of them. It is expected that all three will eventually have the transaction in their own transaction pools.
+### 1. Test join network
+   The test will start with three worker nodes, expecting three of them to know each other.
+### 2. Test submit transaction
+   The test will start with three worker nodes and send a transaction to one of them. It is expected that all three will eventually have the transaction in their own transaction pools.
 
-### 3. Test mine block (15%)
+### 3. Test mine block
 It will start three worker nodes and send a transaction to one of the nodes. After one of the nodes finishes mining a new block, we expect all three of them to have a copy of the updated blockchain.
 
-### 4. Test invalid block (15%)
+### 4. Test invalid block
 It will start three worker nodes and send a transaction to one of the nodes. After one of the nodes has mined a new block, it will modify the block and attempt to append it to the blockchain on every node. We expect that the nodes will reject the modified block.
 
-### 5. Test longer chain (20%)
-It will start two worker nodes first and send a transaction to one of the nodes. After the two workers start mining, it will start the third worker. This worker will receive the transaction from the first two worker nodes and begin mining. The test will then send two more transactions to the network. Since the third worker starts mining slightly later than the first two workers, we expect that the third worker will switch to the longer chain and work on the next block.
+### 5. Test longer chain
+It will start with two worker nodes first and send a transaction to one of the nodes. After the two workers start mining, it will start the third worker. This worker will receive the transaction from the first two worker nodes and begin mining. The test will then send two more transactions to the network. Since the third worker starts mining slightly later than the first two workers, we expect that the third worker will switch to the longer chain and work on the next block.
 
-### 6. Test fork (30%)
+### 6. Test fork
 The test starts with two nodes that are not connected to each other. it will send different transactions to each of the nodes. The two nodes will create two different blockchains, representing a fork. Then, it will start two more worker nodes that know each other and update each of the new worker nodes with the two blockchains. Finally, it will send a new transaction to the network, expecting that the two nodes will eventually have the same blockchain (resolve the fork).
 
 ## System Design
 ### Overview
-![System Structure](https://github.com/cmu14736/s24-lab4-goat/assets/143555875/72665bc0-ee5d-46e4-a163-6ec0943cf269)
+![System Structure](https://github.com/user-attachments/assets/01bbbe6e-9272-44a0-b326-1449a543ca91)
+
 ### Details
 #### Worker Nodes
 - A worker node can join a blockchain network with or without specifying a peer node. If the node joins the network without specifying a peer, it becomes the super (first) node of the network. Otherwise, it retrieves a peer list from the specified peer node and attempts to contact the nodes in the list. The node also acquires the blockchain and the transaction list from the transaction pool of its peer node. When a client sends a new transaction to a worker node, the worker node verifies the transaction, sends it to all peers in the network, and updates the transaction pool. Worker nodes continuously monitor the transaction pool; if any pending transactions exist, a node will start mining a new block containing all the transactions in the pool. If a worker node successfully mines a block, it will send the new block to other nodes in the network. Other nodes then check the validity of the new block, stop their current mining processes, and update the blockchain. 
   
-- If the received new block id is larger than current blockchain length, but the previous hash string does not match to the hash of the previous block, the worker node will consider this situation a fork. To manage, it will request an entire blockchain from a peer node. If the new blockchain is longer and is valid, the worker node will replace the old blockchain with the new chain.
+- If the received new block id is larger than the current blockchain length, but the previous hash string does not match to the hash of the previous block, the worker node will consider this situation a fork. To manage, it will request an entire blockchain from a peer node. If the new blockchain is longer and is valid, the worker node will replace the old blockchain with the new chain.
 
 #### Client Nodes
 - A client node will create an RSA keypair for signing the transaction. It will also prepare a valid transaction and send it to the blockchain network. It will sign the transaction hash with its private key, and put the signature and also its public key in the transaction. The worker node can verify the transaction by verifying the signature with the provided public key.
 
 ### Future Improvement
-1. Improve mining task using GPU parallel computing (e.g. CUDA), replacing CPU computing.
-2. We can add some security mechanisms, like UTXO model, to prevent double spending attacks.
-3. Instead of sending entire blockchain to handle forks, it's better to send only required blocks. Since in the real-world blockchain, the size of entire chain can be really large.
+1. Improve mining tasks using GPU parallel computing (e.g. CUDA), replacing CPU computing.
+2. We can add some security mechanisms, like the UTXO model, to prevent double-spending attacks.
+3. Instead of sending the entire blockchain to handle forks, it's better to send only the required blocks. Since in the real-world blockchain, the size of the entire chain can be huge.
+4. Implement a user interface for clients to interact with the blockchain network.
 
 
 
