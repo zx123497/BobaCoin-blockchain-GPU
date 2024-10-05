@@ -1,6 +1,6 @@
 [package]
 name = "blockchain"
-version = "0.1.0"
+version = "2.0.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -15,6 +15,15 @@ sha256 = "1.5.0"
 uuid = { version = "1.8.0", features = ["v4", "fast-rng"] }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
 openssl = { version = "0.10" }
+libc = "0.2"
+libp2p = { version = "0.54.1", features = ["tcp", "tls", "dns", "async-std", "noise", "yamux", "websocket", "ping", "macros"] }
+futures = "0.3.21"
+async-std = { version = "1.12.0", features = ["attributes"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+igd = "0.12.1"
+local-ip-address = "0.6.3"
 
 [build-dependencies]
+bindgen = "0.70.1"
 tonic-build = "0.11"
+cc = "1.0"
