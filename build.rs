@@ -2,10 +2,13 @@ use std::env;
 use std::path::PathBuf;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     tonic_build::compile_protos("proto/nodeMessage.proto")?;
+    // if no CUDA installed, return
+    if !cfg!(feature = "cuda") {
+        return Ok(());
+    }
 
     println!("cargo:rustc-link-search=native=/cuda_mining_lib/include/mining.h");
     println!("cargo:rustc-link-lib=static=mining_lib");
-
     let cuda_include_path = "/usr/local/cuda/include";
     // Compile the C++/CUDA code using the `cc` crate
     cc::Build::new()
