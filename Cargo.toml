@@ -16,12 +16,13 @@ uuid = { version = "1.8.0", features = ["v4", "fast-rng"] }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
 openssl = { version = "0.10" }
 libc = "0.2"
-libp2p = { version = "0.54.1", features = ["tcp", "tls", "dns", "async-std", "noise", "yamux", "websocket", "ping", "macros"] }
+libp2p = { version = "0.54.1", features = ["tcp", "tls", "dns", "async-std", "noise", "yamux", "websocket", "ping", "macros", "kad"] }
 futures = "0.3.21"
 async-std = { version = "1.12.0", features = ["attributes"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-igd = "0.12.1"
+igd = {version = "0.12.1", features = ["aio"]}
 local-ip-address = "0.6.3"
+
 
 [build-dependencies]
 bindgen = "0.70.1"

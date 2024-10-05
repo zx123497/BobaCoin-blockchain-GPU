@@ -2,7 +2,7 @@
 use blockchain::models::client::Client;
 use blockchain::start;
 use clap::Parser;
-use igd::search_gateway;
+use igd::aio::search_gateway;
 use local_ip_address::local_ip;
 use std::net::{Ipv4Addr, SocketAddrV4};
 #[derive(Parser, Debug)]
@@ -23,7 +23,7 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
-    let gateway = match search_gateway(Default::default()) {
+    let gateway = match search_gateway(Default::default()).await {
         Ok(gateway) => gateway,
         Err(e) => {
             println!("[ERROR] Failed to find gateway: {}", e);
@@ -49,13 +49,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let local_ip = SocketAddrV4::new(local_ip, args.port);
         print!("local_ip: {:?}\n", local_ip);
 
-        match gateway.add_port(
-            igd::PortMappingProtocol::TCP,
-            external_port,
-            local_ip,
-            duration,
-            "YoutaCoin blockchain",
-        ) {
+        match gateway
+            .add_port(
+                igd::PortMappingProtocol::TCP,
+                external_port,
+                local_ip,
+                duration,
+                "YoutaCoin blockchain",
+            )
+            .await
+        {
             Ok(_) => {
                 println!("[INFO] Port {} forwarded to {}", args.port, local_ip);
             }
@@ -64,7 +67,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         start(args.port, args.peer_port).await;
-        match gateway.remove_port(igd::PortMappingProtocol::TCP, external_port) {
+        match gateway
+            .remove_port(igd::PortMappingProtocol::TCP, external_port)
+            .await
+        {
             Ok(_) => {
                 println!("[INFO] Port {} removed", args.port);
             }
